@@ -118,3 +118,8 @@
     - an empty database
   - Also tested end to end through a test server on a throwaway database.
   - CLAUDE.md updated with the week/month ranges, the hike rule for fastest pace, and the streak rule.
+- **Browser test of `/api/summary` with the 7-run test set.**
+  - All-time, week, month, streak and personal bests all matched my hand calculations.
+  - The "count back from yesterday" streak rule and the 5 km minimum for fastest pace both worked.
+  - No console errors.
+  - Skipped the hike-exclusion test, because that rule is changing (next entry).
