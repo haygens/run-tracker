@@ -5,7 +5,7 @@ body {
 }
 
 main {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 16px 48px;
 }
@@ -51,14 +51,18 @@ section {
   padding: 6px 8px;
   border: 1px solid #b6bec7;
   border-radius: 4px;
-  width: 130px;
+  width: 115px;
+}
+
+#run-form input.wide {
+  width: 180px;
 }
 
 #run-form .hint {
   font-size: 0.75rem;
   font-weight: normal;
   color: #59636e;
-  max-width: 130px;
+  max-width: 115px;
 }
 
 #run-form button {

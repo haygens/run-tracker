@@ -1,4 +1,5 @@
 const RUN_TYPES = ['easy', 'long', 'tempo', 'intervals', 'race', 'trail', 'hike'];
+const NAME_MAX_LENGTH = 60;
 
 // True only for a real calendar date in YYYY-MM-DD form (rejects 2026-02-30)
 function isValidDate(value) {
@@ -13,7 +14,7 @@ function validateRun(body) {
     return { errors: ['Request body must be a JSON object'] };
   }
 
-  const { date, distance_km, elevation_m, duration_sec, run_type } = body;
+  const { date, distance_km, elevation_m, duration_sec, run_type, name } = body;
   const errors = [];
 
   if (!isValidDate(date)) {
@@ -32,8 +33,20 @@ function validateRun(body) {
     errors.push(`run_type must be one of: ${RUN_TYPES.join(', ')}`);
   }
 
+  // Name is optional: missing, null or blank is stored as null (the page shows the run type instead)
+  let cleanName = null;
+  if (name !== undefined && name !== null) {
+    if (typeof name !== 'string') {
+      errors.push('name must be text');
+    } else if (name.trim().length > NAME_MAX_LENGTH) {
+      errors.push(`name must be ${NAME_MAX_LENGTH} characters or fewer`);
+    } else {
+      cleanName = name.trim() || null;
+    }
+  }
+
   if (errors.length) return { errors };
-  return { run: { date, distance_km, elevation_m, duration_sec, run_type } };
+  return { run: { date, distance_km, elevation_m, duration_sec, run_type, name: cleanName } };
 }
 
 module.exports = { validateRun, RUN_TYPES };

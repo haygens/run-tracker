@@ -18,12 +18,14 @@ A run has:
 - elevation_m (integer, >= 0)
 - duration_sec (integer, > 0) — entered in the form as minutes: 75 (75 min), 65:30 (65 min 30 s), or 1:05:30 (same as 65:30); seconds must be 00–59, anything else is rejected with a clear message
 - run_type (one of: easy, long, tempo, intervals, race, trail, hike)
+- name (optional text, up to 60 characters, e.g. "Seawall Loop"; blank is stored as empty)
 
 Pace (min/km) is calculated from duration and distance, not stored.
 
 Display:
 - Distance without unneeded decimals: 5, 5.2, 5.25 (not 5.00 or 5.20)
 - Time as h:mm:ss when an hour or more (1:05:30), otherwise mm:ss (27:00)
+- Name: a run without a name shows its run type capitalized instead ("Long", "Hike")
 
 ## API
 - GET    /api/runs          list runs, newest first
@@ -40,7 +42,8 @@ Keep it simple: no user accounts, no login system.
 ## Progress features
 - All-time totals: km, elevation, number of runs, total time
 - Weekly and monthly totals (this week = Monday to today, this month = 1st to today: km and number of runs), with a bar chart of km per week
-- Personal bests: longest run, most elevation, fastest pace (runs of 5 km or more, not counting hikes)
+- Personal bests: longest run, most elevation, fastest pace (runs of 5 km or more). Hikes count everywhere, like any other run type.
+  Shown as the value and the run's name only, e.g. "Fastest pace: 3:45 /km · Seawall Loop"
 - Streak: consecutive days with at least one run, counting back from today, or from yesterday if there's no run yet today
 - Weeks start on Monday
 

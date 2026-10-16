@@ -103,9 +103,14 @@ let runsById = new Map();
 // id of the run being edited, or null when the form is adding a new run
 let editingId = null;
 
+// A run's name, or its type capitalized if it has none ("long" -> "Long")
+function displayName(run) {
+  return run.name || run.run_type.charAt(0).toUpperCase() + run.run_type.slice(1);
+}
+
 // Short description used in messages and the delete confirmation
 function describeRun(run) {
-  return `${run.date} · ${run.run_type} · ${formatDistance(run.distance_km)} km · ${formatDuration(run.duration_sec)}`;
+  return `${run.date} · ${displayName(run)} · ${formatDistance(run.distance_km)} km · ${formatDuration(run.duration_sec)}`;
 }
 
 function makeButton(text, action, id) {
@@ -126,6 +131,7 @@ function renderRuns(runs) {
   for (const run of runs) {
     const cells = [
       [run.date, ''],
+      [displayName(run), ''],
       [run.run_type, ''],
       [formatDistance(run.distance_km), 'num'],
       [run.elevation_m, 'num'],
@@ -175,9 +181,9 @@ function setText(id, text) {
   document.getElementById(id).textContent = text;
 }
 
-// "12.5 km · 2026-10-14 · tempo" style line for a personal best
+// "3:45 /km · Seawall Loop" style line for a personal best
 function describeBest(value, run) {
-  return run ? `${value} · ${run.date} · ${run.run_type}` : 'None yet';
+  return run ? `${value} · ${displayName(run)}` : 'None yet';
 }
 
 function renderSummary(s) {
@@ -201,14 +207,7 @@ function renderSummary(s) {
   const pb = s.personal_bests;
   setText('pb-longest', describeBest(pb.longest_run && `${formatDistance(pb.longest_run.distance_km)} km`, pb.longest_run));
   setText('pb-elevation', describeBest(pb.most_elevation && `${pb.most_elevation.elevation_m} m`, pb.most_elevation));
-  setText(
-    'pb-pace',
-    describeBest(
-      pb.fastest_pace &&
-        `${formatDuration(pb.fastest_pace.pace_sec_per_km)} /km (${formatDistance(pb.fastest_pace.distance_km)} km in ${formatDuration(pb.fastest_pace.duration_sec)})`,
-      pb.fastest_pace
-    )
-  );
+  setText('pb-pace', describeBest(pb.fastest_pace && `${formatDuration(pb.fastest_pace.pace_sec_per_km)} /km`, pb.fastest_pace));
 }
 
 async function loadSummary() {
@@ -233,6 +232,7 @@ function startEdit(run) {
   message.hidden = true;
 
   form.elements.date.value = run.date;
+  form.elements.name.value = run.name || ''; // blank stays blank, so the type keeps standing in
   form.elements.distance_km.value = run.distance_km; // full value, not the rounded display
   form.elements.elevation_m.value = run.elevation_m;
   form.elements.duration.value = formatDuration(run.duration_sec); // "1:05:30" / "27:00" both parse back
@@ -317,6 +317,7 @@ form.addEventListener('submit', async (event) => {
   // Empty number fields are sent as null; the server rejects them with a clear message
   const run = {
     date: data.get('date'),
+    name: data.get('name'),
     distance_km: data.get('distance_km') === '' ? null : Number(data.get('distance_km')),
     elevation_m: data.get('elevation_m') === '' ? null : Number(data.get('elevation_m')),
     duration_sec: duration.seconds,
@@ -351,6 +352,7 @@ form.addEventListener('submit', async (event) => {
     } else {
       showSuccess(`Saved: ${formatDistance(body.distance_km)} km on ${body.date}`);
       // Keep date and type (handy for adding several runs), clear the rest
+      form.elements.name.value = '';
       form.elements.distance_km.value = '';
       form.elements.elevation_m.value = '0';
       form.elements.duration.value = '';

@@ -30,8 +30,8 @@ app.post('/api/runs', (req, res) => {
   }
 
   const result = db.prepare(`
-    INSERT INTO runs (date, distance_km, elevation_m, duration_sec, run_type)
-    VALUES (:date, :distance_km, :elevation_m, :duration_sec, :run_type)
+    INSERT INTO runs (date, distance_km, elevation_m, duration_sec, run_type, name)
+    VALUES (:date, :distance_km, :elevation_m, :duration_sec, :run_type, :name)
   `).run(run);
 
   const created = db.prepare('SELECT * FROM runs WHERE id = ?').get(result.lastInsertRowid);
@@ -64,7 +64,7 @@ app.put('/api/runs/:id', (req, res) => {
   const result = db.prepare(`
     UPDATE runs
     SET date = :date, distance_km = :distance_km, elevation_m = :elevation_m,
-        duration_sec = :duration_sec, run_type = :run_type
+        duration_sec = :duration_sec, run_type = :run_type, name = :name
     WHERE id = :id
   `).run({ ...run, id });
 

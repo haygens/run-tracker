@@ -19,7 +19,8 @@ function createRunsTable(name) {
       distance_km  REAL    NOT NULL CHECK (distance_km > 0),
       elevation_m  INTEGER NOT NULL DEFAULT 0 CHECK (elevation_m >= 0),
       duration_sec INTEGER NOT NULL CHECK (duration_sec > 0),
-      run_type     TEXT    NOT NULL CHECK (run_type IN (${typeList}))
+      run_type     TEXT    NOT NULL CHECK (run_type IN (${typeList})),
+      name         TEXT
     )
   `);
 }
@@ -35,8 +36,8 @@ function migrateRunTypes() {
   try {
     createRunsTable('runs_new');
     db.exec(`
-      INSERT INTO runs_new (id, date, distance_km, elevation_m, duration_sec, run_type)
-      SELECT id, date, distance_km, elevation_m, duration_sec, run_type FROM runs;
+      INSERT INTO runs_new (id, date, distance_km, elevation_m, duration_sec, run_type, name)
+      SELECT id, date, distance_km, elevation_m, duration_sec, run_type, name FROM runs;
       DROP TABLE runs;
       ALTER TABLE runs_new RENAME TO runs;
     `);
@@ -47,6 +48,20 @@ function migrateRunTypes() {
   }
 }
 
+// Older tables were created before runs had a name. Unlike a CHECK change, a new
+// column can be added in place; existing runs get NULL (shown as their run type).
+function migrateAddName() {
+  const existing = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get();
+  if (!existing) return;
+  const columns = db.prepare('PRAGMA table_info(runs)').all().map((c) => c.name);
+  if (columns.includes('name')) return;
+
+  console.log('Adding name column to runs table...');
+  db.exec('ALTER TABLE runs ADD COLUMN name TEXT');
+}
+
+// Order matters: migrateRunTypes copies the name column, so it must exist first
+migrateAddName();
 migrateRunTypes();
 createRunsTable('runs');
 db.exec('CREATE INDEX IF NOT EXISTS idx_runs_date ON runs (date)');

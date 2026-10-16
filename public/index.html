@@ -48,7 +48,7 @@
       <dl class="pbs">
         <dt>Longest run</dt><dd id="pb-longest">–</dd>
         <dt>Most elevation</dt><dd id="pb-elevation">–</dd>
-        <dt>Fastest pace <span class="stat-note">(5 km or more, not hikes)</span></dt><dd id="pb-pace">–</dd>
+        <dt>Fastest pace <span class="stat-note">(5 km or more)</span></dt><dd id="pb-pace">–</dd>
       </dl>
     </section>
 
@@ -58,6 +58,10 @@
         <label>
           Date
           <input type="date" name="date" required>
+        </label>
+        <label>
+          Name
+          <input type="text" name="name" maxlength="60" placeholder="Optional, e.g. Seawall Loop" autocomplete="off" class="wide">
         </label>
         <label>
           Distance (km)
@@ -103,6 +107,7 @@
         <thead>
           <tr>
             <th>Date</th>
+            <th>Name</th>
             <th>Type</th>
             <th class="num">Distance (km)</th>
             <th class="num">Elevation (m)</th>

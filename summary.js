@@ -2,7 +2,6 @@
 // Kept separate from the database so it can be tested with any "today".
 
 const PACE_PB_MIN_KM = 5;
-const PACE_PB_EXCLUDED_TYPES = ['hike'];
 
 // ---- Date helpers (YYYY-MM-DD strings, calculated in UTC to avoid DST shifts) ----
 
@@ -84,9 +83,7 @@ function currentStreak(runs, today) {
 }
 
 function summarize(runs, today = todayLocal()) {
-  const fastestCandidates = runs.filter(
-    (r) => r.distance_km >= PACE_PB_MIN_KM && !PACE_PB_EXCLUDED_TYPES.includes(r.run_type)
-  );
+  const fastestCandidates = runs.filter((r) => r.distance_km >= PACE_PB_MIN_KM);
   // Fastest = lowest seconds per km, so score by the negative
   const fastest = best(fastestCandidates, (r) => -(r.duration_sec / r.distance_km));
 

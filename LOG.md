@@ -123,3 +123,18 @@
   - The "count back from yesterday" streak rule and the 5 km minimum for fastest pace both worked.
   - No console errors.
   - Skipped the hike-exclusion test, because that rule is changing (next entry).
+- **Changes you asked for after testing the summary.**
+  - **Hikes count everywhere, including fastest pace.** Removed the hike exclusion from `summary.js`. Fastest pace still needs 5 km or more, and the page label now reads "(5 km or more)".
+  - **Optional run name** (e.g. "Seawall Loop"):
+    - New nullable `name` column. Existing databases get it with `ALTER TABLE ... ADD COLUMN` the first time the server starts, which prints "Adding name column to runs table...". Existing runs get no name.
+    - This runs before the run-type rebuild, because that rebuild now copies `name` too.
+    - Tested on a temporary copy of `runs.db`: all 7 runs were kept, and a second start didn't migrate again. Also tested on a very old table (no hike, no name), which got both changes, and on a fresh database.
+  - **Name validation:** text only, trimmed, up to 60 characters. Blank, missing or `null` is stored as `NULL`.
+    - The fallback (run type capitalized, e.g. "Long") is worked out when the page displays the run, and isn't stored. Why: if you later change a run's type, an unnamed run shows its new type, and editing it shows an empty Name field instead of a made-up name.
+  - **Form and table:** a Name field after Date, and a Name column in the table.
+    - Edit loads the stored name, or leaves the field blank.
+    - After adding a run, the name is cleared along with distance, elevation and time.
+    - Delete and update messages now show the name instead of the type.
+    - The page is wider (1100px) and the inputs are narrower, so the extra field still fits on one row with the buttons.
+  - **Personal bests** now show only the value and the run's name, e.g. "Fastest pace: 3:45 /km · Seawall Loop".
+  - CLAUDE.md updated: name field, name display rule, hikes count in every PB, and the PB display format.
