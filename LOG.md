@@ -166,3 +166,11 @@
     - Rendered in headless Edge against a test server on a throwaway database, and checked the screenshots: bar heights matched the axis, empty weeks visible, no overlapping labels.
     - Hovered bars with real mouse events: the tooltip showed the right dates and km, stayed inside the chart at both edges, and hid when the mouse left. Keyboard focus showed the same tooltip.
   - CLAUDE.md updated with the empty-week, current-week and hover details.
+- **Browser test of the weekly chart.** Everything passed, with no console errors:
+  - This week's bar matches the summary card.
+  - The 5 Oct bar includes the Sunday hike.
+  - Empty weeks fill in when a run is added.
+  - A run on Sunday 10-04 goes into the 28 Sep week.
+  - A run on 27 Jul shows in the first bar.
+  - Runs on 26 Jul and future dates are excluded.
+  - The table view matches the bars.
