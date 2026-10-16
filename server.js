@@ -1,11 +1,47 @@
+const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
+const { WRITE_PASSWORD } = require('./config'); // exits with a clear message if .env isn't set up
 const db = require('./db');
 const { validateRun } = require('./validate');
 const { summarize, weeklyTotals } = require('./summary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ---- Password for add, edit and delete (GET stays public) ----
+
+const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+// Compare hashes with timingSafeEqual so response time doesn't leak how much of a guess matched
+function sha256(text) {
+  return crypto.createHash('sha256').update(text, 'utf8').digest();
+}
+const passwordHash = sha256(WRITE_PASSWORD);
+
+function passwordMatches(given) {
+  if (crypto.timingSafeEqual(sha256(given), passwordHash)) return true;
+  // The page URL-encodes the header so passwords with accents etc. survive HTTP headers
+  try {
+    return crypto.timingSafeEqual(sha256(decodeURIComponent(given)), passwordHash);
+  } catch {
+    return false; // not valid URL encoding
+  }
+}
+
+// Runs before JSON parsing, so a write without the right password always gets 401
+app.use('/api', (req, res, next) => {
+  if (!WRITE_METHODS.includes(req.method)) return next();
+
+  const given = req.get('X-Password');
+  if (!given) {
+    return res.status(401).json({ error: 'Password required to add, edit or delete runs (send it in the X-Password header)' });
+  }
+  if (!passwordMatches(given)) {
+    return res.status(401).json({ error: 'Wrong password' });
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));

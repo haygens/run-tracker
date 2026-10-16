@@ -7,7 +7,13 @@
 </head>
 <body>
   <main>
-    <h1>Run Tracker</h1>
+    <header class="page-header">
+      <h1>Run Tracker</h1>
+      <div id="password-status" hidden>
+        <span class="stat-note">Password remembered for this tab</span>
+        <button type="button" id="forget-password" class="small-button">Forget password</button>
+      </div>
+    </header>
 
     <section id="summary">
       <h2>Progress</h2>
@@ -141,6 +147,21 @@
       <p id="runs-empty" hidden>No runs yet. Add your first one above.</p>
     </section>
   </main>
+
+  <dialog id="password-dialog" aria-labelledby="password-title">
+    <form id="password-form" method="dialog">
+      <h2 id="password-title">Password needed</h2>
+      <p id="password-message"></p>
+      <label>
+        Password
+        <input type="password" id="password-input" autocomplete="current-password">
+      </label>
+      <div class="buttons">
+        <button type="submit" id="password-ok">Continue</button>
+        <button type="button" id="password-cancel" class="secondary">Cancel</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

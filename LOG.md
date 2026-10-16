@@ -174,3 +174,30 @@
   - A run on 27 Jul shows in the first bar.
   - Runs on 26 Jul and future dates are excluded.
   - The table view matches the bars.
+- **Day 3, step 7: password for add, edit and delete.** GET endpoints stay public.
+  - **New `config.js`** reads `WRITE_PASSWORD` from `.env` (gitignored). The server refuses to start, with a clear message, if:
+    - `.env` is missing
+    - the password line is missing or empty
+    - the password is still the `.env.example` placeholder
+  - **How `.env` is read:**
+    - The file is read directly and parsed with Node's built-in `util.parseEnv`, so no `dotenv` package is needed.
+    - Any byte-order mark is stripped first. Why: PowerShell 5.1 and some editors add one, and Node's own `.env` loader then can't find the first key. I confirmed that in a test.
+    - `ENV_FILE` can point at another file, so tests never need your real `.env`.
+  - **New committed `.env.example`** with `WRITE_PASSWORD='change-me'` and notes. Single quotes matter: without them, a `#` in the password starts a comment and cuts it short.
+  - **Server check:** a check before JSON parsing returns 401 for any POST, PUT or DELETE without the right `X-Password` header:
+    - "Password required…" when the header is missing.
+    - "Wrong password" when it doesn't match.
+    - Broken or invalid bodies get 401, not 400, until the password is right.
+    - It compares SHA-256 hashes with `timingSafeEqual`.
+    - It accepts the header raw or URL-encoded. Why: browsers can't send accented characters in headers, so the page encodes them.
+  - **Page:** the first add, edit or delete opens a password dialog.
+    - A wrong password shows "Wrong password. Please try again." in red and asks again.
+    - Cancel or Esc changes nothing and says why. Esc in the dialog no longer also cancels edit mode.
+    - The password is remembered in `sessionStorage`, which belongs to that browser tab only: it survives a reload but not a new tab or closing the tab.
+    - It is only remembered after the server accepts it.
+    - The top right shows "Password remembered for this tab" and a **Forget password** button.
+  - **Testing:**
+    - Startup refusal with: no file, no key, empty value, the placeholder, and a file with a BOM (which starts fine).
+    - 14 API checks: public GETs; 401 for missing, wrong and wrong-case passwords and for broken JSON without a password; 201/200/400 with the right password; a test password with an accent, a space and a `#`.
+    - 12 browser checks in headless Edge: dialog appears, wrong then right, no second prompt, survives reload, Forget, Cancel, Esc during edit, delete asks after confirm, a new tab asks again. No console errors.
+    - All tests used test `.env` files and a throwaway database. Your real password was never chosen or written anywhere.

@@ -36,7 +36,8 @@ Display:
 - GET    /api/weekly        km per week for the last 12 weeks, oldest first, empty weeks included (for the chart)
 
 GET endpoints are public so a portfolio page can read them later.
-Auth is a single password stored in a .env file (gitignored), sent in a request header.
+Auth is a single password (WRITE_PASSWORD) stored in a .env file (gitignored; .env.example is the committed template), sent in the X-Password request header. Wrong or missing password on a write returns 401. The server refuses to start if .env or the password is missing, or still the placeholder.
+The page asks for the password on the first add/edit/delete and remembers it for that browser tab only (sessionStorage), with a "Forget password" button.
 Keep it simple: no user accounts, no login system.
 
 ## Progress features

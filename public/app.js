@@ -443,11 +443,121 @@ cancelButton.addEventListener('click', () => {
 
 // Esc also cancels editing
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && editingId !== null) {
+  if (event.key === 'Escape' && editingId !== null && !passwordDialog.open) {
     message.hidden = true;
     stopEdit();
   }
 });
+
+// ---- Password ----
+// Asked for on the first add/edit/delete, then remembered in sessionStorage,
+// which belongs to this browser tab only and is cleared when the tab closes.
+
+const PASSWORD_KEY = 'runTrackerPassword';
+const passwordDialog = document.getElementById('password-dialog');
+const passwordForm = document.getElementById('password-form');
+const passwordInput = document.getElementById('password-input');
+const passwordMessage = document.getElementById('password-message');
+const passwordCancel = document.getElementById('password-cancel');
+const passwordStatus = document.getElementById('password-status');
+let memoryPassword = null; // fallback if sessionStorage is blocked
+
+function getPassword() {
+  try {
+    return sessionStorage.getItem(PASSWORD_KEY) ?? memoryPassword;
+  } catch {
+    return memoryPassword;
+  }
+}
+
+function rememberPassword(password) {
+  memoryPassword = password;
+  try {
+    sessionStorage.setItem(PASSWORD_KEY, password);
+  } catch {
+    // Storage blocked: the in-memory copy lasts until the page reloads
+  }
+  passwordStatus.hidden = false;
+}
+
+function forgetPassword() {
+  memoryPassword = null;
+  try {
+    sessionStorage.removeItem(PASSWORD_KEY);
+  } catch {
+    // nothing stored
+  }
+  passwordStatus.hidden = true;
+}
+
+document.getElementById('forget-password').addEventListener('click', () => {
+  forgetPassword();
+  showSuccess('Password forgotten. You will be asked again next time you add, edit or delete.');
+});
+
+// Shows the password dialog. Resolves with the password, or null if cancelled.
+function askPassword(text, isError = false) {
+  return new Promise((resolve) => {
+    passwordMessage.textContent = text;
+    passwordMessage.className = isError ? 'password-error' : '';
+    passwordInput.value = '';
+
+    const finish = (value) => {
+      passwordForm.removeEventListener('submit', onSubmit);
+      passwordDialog.removeEventListener('cancel', onCancel);
+      passwordCancel.removeEventListener('click', onCancel);
+      passwordDialog.close();
+      resolve(value);
+    };
+    const onSubmit = (event) => {
+      event.preventDefault();
+      if (passwordInput.value === '') {
+        passwordInput.focus();
+        return;
+      }
+      finish(passwordInput.value);
+    };
+    const onCancel = (event) => {
+      event.preventDefault();
+      finish(null);
+    };
+
+    passwordForm.addEventListener('submit', onSubmit);
+    passwordDialog.addEventListener('cancel', onCancel); // Esc key
+    passwordCancel.addEventListener('click', onCancel);
+    passwordDialog.showModal();
+    passwordInput.focus();
+  });
+}
+
+// fetch() for add/edit/delete: sends the password, asks for it first if needed,
+// and asks again if the server says it's wrong. Resolves with the response,
+// or null if the password dialog was cancelled.
+async function writeRequest(url, method, body) {
+  let password = getPassword();
+  if (!password) {
+    password = await askPassword('Enter the Run Tracker password to add, edit or delete runs.');
+    if (password === null) return null;
+  }
+
+  for (;;) {
+    const headers = { 'X-Password': encodeURIComponent(password) };
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const res = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+
+    if (res.status !== 401) {
+      rememberPassword(password); // the server accepted it
+      return res;
+    }
+
+    forgetPassword();
+    const error = await res.json().catch(() => ({}));
+    password = await askPassword(`${error.error || 'Wrong password'}. Please try again.`, true);
+    if (password === null) return null;
+  }
+}
+
+const PASSWORD_CANCELLED = 'Nothing was changed: the password is needed to add, edit or delete runs.';
 
 // ---- Delete ----
 
@@ -457,7 +567,11 @@ async function deleteRun(run) {
 
   message.hidden = true;
   try {
-    const res = await fetch(`/api/runs/${run.id}`, { method: 'DELETE' });
+    const res = await writeRequest(`/api/runs/${run.id}`, 'DELETE');
+    if (res === null) {
+      showErrors(PASSWORD_CANCELLED);
+      return;
+    }
     if (!res.ok && res.status !== 404) {
       const body = await res.json().catch(() => ({}));
       showErrors(body.error || `Could not delete run (server returned ${res.status})`);
@@ -504,11 +618,11 @@ form.addEventListener('submit', async (event) => {
 
   submitButton.disabled = true;
   try {
-    const res = await fetch(url, {
-      method: isEdit ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(run),
-    });
+    const res = await writeRequest(url, isEdit ? 'PUT' : 'POST', run);
+    if (res === null) {
+      showErrors(PASSWORD_CANCELLED);
+      return;
+    }
     const body = await res.json();
 
     if (!res.ok) {
@@ -541,4 +655,5 @@ form.addEventListener('submit', async (event) => {
 });
 
 form.elements.date.value = todayLocal();
+passwordStatus.hidden = !getPassword();
 refresh();
