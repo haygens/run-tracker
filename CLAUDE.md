@@ -66,3 +66,4 @@ Later (not part of this deadline)
 - After each change, add an entry to LOG.md: what changed and why
 - Tell me how to run and test anything you build
 - Never commit secrets (.env) or the database file
+- When starting a test server, stop only that specific process (by its PID); never kill all node.exe processes

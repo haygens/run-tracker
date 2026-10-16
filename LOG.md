@@ -10,3 +10,5 @@
   - Used Node's built-in `node:sqlite` instead of an npm SQLite package. Why: no native module to compile on Windows, and one less dependency. This needs Node 22.13 or newer (this machine has v24).
   - Added a placeholder `public/index.html`. The real form and table come in step 3.
   - Added `npm start` and `npm run dev` (auto-restarts on file changes).
+- **Added a rule to CLAUDE.md: stop only the test server's own process, never all `node.exe`.**
+  - Why: while testing step 1, the server was stopped with a command that closed every Node process on the laptop. That could have closed other programs that were running.
