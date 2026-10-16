@@ -84,3 +84,13 @@
   - **Delete in the page:** asks for confirmation first, using the browser's confirm dialog. It shows the run's date, type, distance and time, and says it can't be undone.
     - If you delete the run you're editing, the form goes back to add mode.
   - API tested on a throwaway database: edit, bad edit, missing id, bad id, broken JSON, delete, delete twice. All gave the expected status and message.
+- **Browser test of edit and delete.** Everything worked, with no console errors:
+  - editing, and changing a run's date
+  - Cancel and Esc
+  - bad edits
+  - switching between rows
+  - cancelling and confirming a delete
+  - deleting the run being edited
+  - refresh
+  - adding a run
+  - Used delete to remove duplicate and test runs.
