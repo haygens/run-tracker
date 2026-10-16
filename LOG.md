@@ -225,3 +225,6 @@
   - Times under 10 minutes show as `9:45`, not `09:45`. That matches what was tested and accepted.
   - Everything shown on the page uses `textContent`. The password check also covers other letter cases (`/API/…`) and uses a timing-safe compare.
   - The server listens on all network interfaces. This is listed as a known limitation instead of changed, because restricting it to localhost can make PowerShell 5.1 requests to `localhost` slow.
+- **Day 3, step 8: README.md.**
+  - Covers what the app does, numbered PowerShell setup (install Node, `npm install`, create `.env` with the hidden `Read-Host` method, `npm start`), how to use it, the API with an example run, troubleshooting, known limitations, the test environment variables, and a file guide.
+  - I ran the `.env` commands in Windows PowerShell 5.1 (with a stand-in for the interactive `Read-Host`). The file has no BOM, and the server accepted a password containing an accent, a space and a `#`.
