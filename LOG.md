@@ -138,3 +138,12 @@
     - The page is wider (1100px) and the inputs are narrower, so the extra field still fits on one row with the buttons.
   - **Personal bests** now show only the value and the run's name, e.g. "Fastest pace: 3:45 /km · Seawall Loop".
   - CLAUDE.md updated: name field, name display rule, hikes count in every PB, and the PB display format.
+- **Browser test of the name and PB changes.** Everything worked, with no console errors:
+  - The migration kept all runs.
+  - Hikes now count in fastest pace (3:45 · Hike).
+  - Named and unnamed runs display correctly.
+  - Spaces are trimmed.
+  - Edit loads names.
+  - Names appear in PBs (Grouse Grind).
+  - Clearing a name falls back to the type.
+  - Names survive a refresh.
