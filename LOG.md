@@ -25,3 +25,15 @@
   - The API takes duration in seconds. The form in step 3 will turn hh:mm:ss into seconds before sending.
   - Broken JSON and unknown `/api/...` URLs now get JSON error messages instead of Express's HTML error pages.
   - `db.js` now reads an optional `DB_PATH` environment variable. Why: tests can use a throwaway database and leave the real `runs.db` alone.
+- **Manual test of step 2.**
+  - At first, `POST /api/runs` returned 404. An old server from step 1 was still running the old code. Restarting the server fixed it.
+  - Then I tested one valid run and these bad inputs:
+    - invalid date
+    - negative distance
+    - decimal elevation
+    - zero duration
+    - bad run type
+    - numbers sent as text
+    - an empty object
+    - broken JSON
+  - Every bad input was rejected with a 400, and only the valid run was saved.
