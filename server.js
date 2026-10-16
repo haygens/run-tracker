@@ -144,6 +144,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong on the server' });
 });
 
-app.listen(PORT, () => {
+// Express 5 passes a startup error (e.g. port already in use) to this callback
+app.listen(PORT, (err) => {
+  if (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\nRun Tracker cannot start: port ${PORT} is already in use.`);
+      console.error('  Another Run Tracker server is probably still running. Stop it with Ctrl+C in its window, then try again.\n');
+    } else {
+      console.error('\nRun Tracker cannot start:', err.message, '\n');
+    }
+    process.exit(1);
+  }
   console.log(`Run Tracker listening on http://localhost:${PORT}`);
 });

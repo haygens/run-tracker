@@ -18,7 +18,7 @@ A run has:
 - elevation_m (integer, >= 0)
 - duration_sec (integer, > 0) — entered in the form as minutes: 75 (75 min), 65:30 (65 min 30 s), or 1:05:30 (same as 65:30); seconds must be 00–59, anything else is rejected with a clear message
 - run_type (one of: easy, long, tempo, intervals, race, trail, hike)
-- name (optional text, up to 60 characters, e.g. "Seawall Loop"; blank is stored as empty)
+- name (optional text, up to 60 characters, e.g. "Seawall Loop"; blank is stored as NULL)
 
 Pace (min/km) is calculated from duration and distance, not stored.
 
@@ -34,6 +34,7 @@ Display:
 - DELETE /api/runs/:id      delete a run         (requires password)
 - GET    /api/summary       all-time totals, this week/month totals, personal bests, current streak
 - GET    /api/weekly        km per week for the last 12 weeks, oldest first, empty weeks included (for the chart)
+- GET    /api/health        quick check that the server and database are up (returns status and run count)
 
 GET endpoints are public so a portfolio page can read them later.
 Auth is a single password (WRITE_PASSWORD) stored in a .env file (gitignored; .env.example is the committed template), sent in the X-Password request header. Wrong or missing password on a write returns 401. The server refuses to start if .env or the password is missing, or still the placeholder.

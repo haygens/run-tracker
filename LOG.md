@@ -213,3 +213,15 @@
   - Forget password works.
   - The startup check correctly refused to run while the password was still the placeholder.
   - Editing `.env` in Notepad didn't save on my machine, so I set it from PowerShell with the `Read-Host` method instead.
+- **Day 3, step 8: code review and fixes.** I read the whole codebase against CLAUDE.md before changing anything. Found and fixed:
+  - **Port already in use gave a false "listening" message.**
+    - Express 5 passes the startup error to the `listen` callback, and the callback ignored it. So the server printed "Run Tracker listening…" and then quietly exited.
+    - That's what made step 2 look like a 404: the new server never started, and the old one kept answering.
+    - It now says the port is in use, that another Run Tracker is probably running, and how to stop it, then exits with code 1.
+  - **`.gitignore` only covered `*.db`.** Added `*.db-journal`, `*.db-wal` and `*.db-shm`. Why: SQLite can leave these next to `runs.db`, and they contain run data.
+  - **CLAUDE.md:** a blank name is stored as `NULL` (not "empty"), and `GET /api/health` is now in the API list.
+- **Checked and left as is:**
+  - The `DB_PATH`, `ENV_FILE` and `PORT` overrides are intentional test hooks, now documented in the README.
+  - Times under 10 minutes show as `9:45`, not `09:45`. That matches what was tested and accepted.
+  - Everything shown on the page uses `textContent`. The password check also covers other letter cases (`/API/…`) and uses a timing-safe compare.
+  - The server listens on all network interfaces. This is listed as a known limitation instead of changed, because restricting it to localhost can make PowerShell 5.1 requests to `localhost` slow.
