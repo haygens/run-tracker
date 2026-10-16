@@ -71,3 +71,16 @@
   - The time formats `75`, `65:30` and `1:05:30` work.
   - The bad times `65:60`, `65:5`, `75.5` and `0` are rejected.
   - The hike type saves with the correct pace.
+- **Day 2, step 4: edit and delete.**
+  - **`PUT /api/runs/:id`** replaces all fields of a run, using the same `validateRun` rules as adding. It returns the updated run.
+  - **`DELETE /api/runs/:id`** returns 204 with no body.
+  - **Errors for both:**
+    - 404 with `Run N not found` for a missing id.
+    - 400 with `Run id must be a positive whole number` for ids like `abc`, `0` or `1.5`.
+  - **Edit in the page:** each table row has Edit and Delete buttons. Edit loads the run into the existing form instead of a separate edit screen. Why: it reuses the same fields, time parsing and error display, so there's less code to keep in sync.
+    - In edit mode the heading reads "Edit run (date)", the button says "Save changes", and a Cancel button appears. Esc also cancels.
+    - The form section gets an amber edge and the row being edited is highlighted.
+    - Distance is loaded at its full value, not the rounded display. Why: saving without changes doesn't quietly round `21.0975` to `21.1`.
+  - **Delete in the page:** asks for confirmation first, using the browser's confirm dialog. It shows the run's date, type, distance and time, and says it can't be undone.
+    - If you delete the run you're editing, the form goes back to add mode.
+  - API tested on a throwaway database: edit, bad edit, missing id, bad id, broken JSON, delete, delete twice. All gave the expected status and message.

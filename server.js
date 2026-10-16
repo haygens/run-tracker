@@ -37,6 +37,50 @@ app.post('/api/runs', (req, res) => {
   res.status(201).json(created);
 });
 
+// "12" -> 12; anything that isn't a positive whole number -> null
+function parseId(text) {
+  return /^[1-9]\d*$/.test(text) ? Number(text) : null;
+}
+
+// Edit a run (all fields are replaced, same rules as adding)
+app.put('/api/runs/:id', (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ error: 'Run id must be a positive whole number' });
+  }
+
+  const { errors, run } = validateRun(req.body);
+  if (errors) {
+    return res.status(400).json({ error: 'Invalid run', details: errors });
+  }
+
+  const result = db.prepare(`
+    UPDATE runs
+    SET date = :date, distance_km = :distance_km, elevation_m = :elevation_m,
+        duration_sec = :duration_sec, run_type = :run_type
+    WHERE id = :id
+  `).run({ ...run, id });
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: `Run ${id} not found` });
+  }
+  res.json(db.prepare('SELECT * FROM runs WHERE id = ?').get(id));
+});
+
+// Delete a run
+app.delete('/api/runs/:id', (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ error: 'Run id must be a positive whole number' });
+  }
+
+  const result = db.prepare('DELETE FROM runs WHERE id = ?').run(id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: `Run ${id} not found` });
+  }
+  res.status(204).end();
+});
+
 // Unknown /api routes get JSON, not an HTML 404 page
 app.use('/api', (req, res) => {
   res.status(404).json({ error: `No such endpoint: ${req.method} ${req.originalUrl}` });

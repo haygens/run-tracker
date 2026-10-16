@@ -94,7 +94,32 @@ function showErrors(title, details = []) {
 
 // ---- Runs table ----
 
+const formHeading = document.getElementById('form-heading');
+const submitButton = document.getElementById('submit-button');
+const cancelButton = document.getElementById('cancel-edit');
+
+// Runs currently shown, by id, so Edit/Delete buttons can look up the full run
+let runsById = new Map();
+// id of the run being edited, or null when the form is adding a new run
+let editingId = null;
+
+// Short description used in messages and the delete confirmation
+function describeRun(run) {
+  return `${run.date} · ${run.run_type} · ${formatDistance(run.distance_km)} km · ${formatDuration(run.duration_sec)}`;
+}
+
+function makeButton(text, action, id) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = text;
+  button.className = `row-button ${action}`;
+  button.dataset.action = action;
+  button.dataset.id = id;
+  return button;
+}
+
 function renderRuns(runs) {
+  runsById = new Map(runs.map((run) => [run.id, run]));
   tbody.replaceChildren();
   emptyNote.hidden = runs.length > 0;
 
@@ -108,12 +133,17 @@ function renderRuns(runs) {
       [formatPace(run.duration_sec, run.distance_km), 'num'],
     ];
     const row = document.createElement('tr');
+    if (run.id === editingId) row.className = 'editing';
     for (const [text, className] of cells) {
       const cell = document.createElement('td');
       cell.textContent = text;
       if (className) cell.className = className;
       row.appendChild(cell);
     }
+    const actions = document.createElement('td');
+    actions.className = 'actions';
+    actions.append(makeButton('Edit', 'edit', run.id), makeButton('Delete', 'delete', run.id));
+    row.appendChild(actions);
     tbody.appendChild(row);
   }
 }
@@ -128,7 +158,93 @@ async function loadRuns() {
   }
 }
 
-// ---- Add-run form ----
+// One click handler for every Edit/Delete button in the table
+tbody.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const run = runsById.get(Number(button.dataset.id));
+  if (!run) return;
+
+  if (button.dataset.action === 'edit') startEdit(run);
+  if (button.dataset.action === 'delete') deleteRun(run);
+});
+
+// ---- Edit mode ----
+
+function startEdit(run) {
+  editingId = run.id;
+  message.hidden = true;
+
+  form.elements.date.value = run.date;
+  form.elements.distance_km.value = run.distance_km; // full value, not the rounded display
+  form.elements.elevation_m.value = run.elevation_m;
+  form.elements.duration.value = formatDuration(run.duration_sec); // "1:05:30" / "27:00" both parse back
+  form.elements.run_type.value = run.run_type;
+
+  formHeading.textContent = `Edit run (${run.date})`;
+  submitButton.textContent = 'Save changes';
+  cancelButton.hidden = false;
+  form.classList.add('editing');
+  renderRuns([...runsById.values()]); // highlight the row being edited
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  form.elements.distance_km.focus();
+}
+
+// Back to adding a new run, with a fresh form
+function stopEdit() {
+  editingId = null;
+  form.reset();
+  form.elements.date.value = todayLocal();
+
+  formHeading.textContent = 'Add a run';
+  submitButton.textContent = 'Add run';
+  cancelButton.hidden = true;
+  form.classList.remove('editing');
+  renderRuns([...runsById.values()]);
+}
+
+cancelButton.addEventListener('click', () => {
+  message.hidden = true;
+  stopEdit();
+});
+
+// Esc also cancels editing
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && editingId !== null) {
+    message.hidden = true;
+    stopEdit();
+  }
+});
+
+// ---- Delete ----
+
+async function deleteRun(run) {
+  const ok = window.confirm(`Delete this run?\n\n${describeRun(run)}\n\nThis can't be undone.`);
+  if (!ok) return;
+
+  message.hidden = true;
+  try {
+    const res = await fetch(`/api/runs/${run.id}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 404) {
+      const body = await res.json().catch(() => ({}));
+      showErrors(body.error || `Could not delete run (server returned ${res.status})`);
+      return;
+    }
+
+    if (res.status === 404) {
+      showErrors('That run was already deleted.');
+    } else {
+      showSuccess(`Deleted: ${describeRun(run)}`);
+    }
+    if (editingId === run.id) stopEdit();
+    await loadRuns();
+  } catch (err) {
+    showErrors(`Could not reach the server: ${err.message}`);
+  }
+}
+
+// ---- Add / save form ----
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -150,11 +266,13 @@ form.addEventListener('submit', async (event) => {
     run_type: data.get('run_type'),
   };
 
-  const button = form.querySelector('button');
-  button.disabled = true;
+  const isEdit = editingId !== null;
+  const url = isEdit ? `/api/runs/${editingId}` : '/api/runs';
+
+  submitButton.disabled = true;
   try {
-    const res = await fetch('/api/runs', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method: isEdit ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(run),
     });
@@ -162,19 +280,29 @@ form.addEventListener('submit', async (event) => {
 
     if (!res.ok) {
       showErrors(body.error || 'Could not save run', body.details);
+      // The run being edited no longer exists, so go back to adding
+      if (isEdit && res.status === 404) {
+        stopEdit();
+        await loadRuns();
+      }
       return;
     }
 
-    showSuccess(`Saved: ${formatDistance(body.distance_km)} km on ${body.date}`);
-    // Keep date and type (handy for adding several runs), clear the rest
-    form.elements.distance_km.value = '';
-    form.elements.elevation_m.value = '0';
-    form.elements.duration.value = '';
+    if (isEdit) {
+      showSuccess(`Updated: ${describeRun(body)}`);
+      stopEdit();
+    } else {
+      showSuccess(`Saved: ${formatDistance(body.distance_km)} km on ${body.date}`);
+      // Keep date and type (handy for adding several runs), clear the rest
+      form.elements.distance_km.value = '';
+      form.elements.elevation_m.value = '0';
+      form.elements.duration.value = '';
+    }
     await loadRuns();
   } catch (err) {
     showErrors(`Could not reach the server: ${err.message}`);
   } finally {
-    button.disabled = false;
+    submitButton.disabled = false;
   }
 });
 

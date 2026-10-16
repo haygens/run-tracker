@@ -128,3 +128,71 @@ th {
 tbody tr:hover {
   background: #f6f8fa;
 }
+
+/* ---- Edit and delete ---- */
+
+#run-form .buttons {
+  display: flex;
+  gap: 8px;
+}
+
+#run-form button.secondary {
+  background: #fff;
+  color: #1f2328;
+  border: 1px solid #b6bec7;
+}
+
+#run-form button.secondary:hover {
+  background: #f3f4f6;
+}
+
+/* Form gets an amber edge while editing, so add vs edit is obvious */
+section:has(#run-form.editing) {
+  border-color: #d4a72c;
+  box-shadow: 0 0 0 2px #fff8c5;
+}
+
+tbody tr.editing,
+tbody tr.editing:hover {
+  background: #fff8c5;
+}
+
+td.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-button {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  margin-left: 4px;
+  border: 1px solid #b6bec7;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f2328;
+  cursor: pointer;
+}
+
+.row-button:hover {
+  background: #f3f4f6;
+}
+
+.row-button.delete {
+  color: #a40e26;
+  border-color: #e5a1a8;
+}
+
+.row-button.delete:hover {
+  background: #ffebe9;
+}
+
+/* Readable by screen readers, invisible on screen */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

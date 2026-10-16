@@ -10,7 +10,7 @@
     <h1>Run Tracker</h1>
 
     <section>
-      <h2>Add a run</h2>
+      <h2 id="form-heading">Add a run</h2>
       <form id="run-form" novalidate>
         <label>
           Date
@@ -45,7 +45,10 @@
         <!-- Blank caption keeps the button level with the inputs -->
         <div class="form-actions">
           <span aria-hidden="true">&nbsp;</span>
-          <button type="submit">Add run</button>
+          <div class="buttons">
+            <button type="submit" id="submit-button">Add run</button>
+            <button type="button" id="cancel-edit" class="secondary" hidden>Cancel</button>
+          </div>
         </div>
       </form>
       <div id="form-message" role="status" hidden></div>
@@ -62,6 +65,7 @@
             <th class="num">Elevation (m)</th>
             <th class="num">Time</th>
             <th class="num">Pace (min/km)</th>
+            <th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
         <tbody></tbody>
