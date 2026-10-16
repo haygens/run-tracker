@@ -33,7 +33,7 @@ Display:
 - PUT    /api/runs/:id      edit a run           (requires password)
 - DELETE /api/runs/:id      delete a run         (requires password)
 - GET    /api/summary       all-time totals, this week/month totals, personal bests, current streak
-- GET    /api/weekly        km per week for the last 12 weeks (for the chart)
+- GET    /api/weekly        km per week for the last 12 weeks, oldest first, empty weeks included (for the chart)
 
 GET endpoints are public so a portfolio page can read them later.
 Auth is a single password stored in a .env file (gitignored), sent in a request header.
@@ -41,7 +41,7 @@ Keep it simple: no user accounts, no login system.
 
 ## Progress features
 - All-time totals: km, elevation, number of runs, total time
-- Weekly and monthly totals (this week = Monday to today, this month = 1st to today: km and number of runs), with a bar chart of km per week
+- Weekly and monthly totals (this week = Monday to today, this month = 1st to today: km and number of runs), with a bar chart of km per week (last 12 weeks; weeks with no runs show as empty bars; the current week runs Monday to today; hover shows dates and km)
 - Personal bests: longest run, most elevation, fastest pace (runs of 5 km or more). Hikes count everywhere, like any other run type.
   Shown as the value and the run's name only, e.g. "Fastest pace: 3:45 /km · Seawall Loop"
 - Streak: consecutive days with at least one run, counting back from today, or from yesterday if there's no run yet today

@@ -109,4 +109,19 @@ function summarize(runs, today = todayLocal()) {
   };
 }
 
-module.exports = { summarize, mondayOf, addDays };
+// Km per week for the last `count` weeks, oldest first. Weeks run Monday to Sunday;
+// the current week stops at today (same range as "this week" in the summary).
+// Weeks with no runs are included with 0 km, so the chart never skips a week.
+function weeklyTotals(runs, today = todayLocal(), count = 12) {
+  const thisMonday = mondayOf(today);
+  const weeks = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const start = addDays(thisMonday, -7 * i);
+    const end = i === 0 ? today : addDays(start, 6);
+    const { distance_km, runs: runCount } = periodTotals(runs, start, end);
+    weeks.push({ week_start: start, week_end: end, distance_km, runs: runCount });
+  }
+  return weeks;
+}
+
+module.exports = { summarize, weeklyTotals };

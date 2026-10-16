@@ -220,9 +220,184 @@ async function loadSummary() {
   }
 }
 
+// ---- Weekly chart (plain SVG) ----
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const chartBox = document.getElementById('weekly-chart');
+const chartTooltip = document.getElementById('weekly-tooltip');
+let lastWeeks = [];
+
+function svg(tag, attrs = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+  return el;
+}
+
+// "2026-10-12" -> "12 Oct"
+function shortDate(ymd) {
+  return `${Number(ymd.slice(8, 10))} ${MONTHS[Number(ymd.slice(5, 7)) - 1]}`;
+}
+
+// A clean axis step giving about 4 gridlines: 1, 2, 2.5, 5, 10, 20, 25, 50...
+function niceStep(max) {
+  const raw = max / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  for (const m of [1, 2, 2.5, 5, 10]) {
+    if (m * magnitude >= raw) return m * magnitude;
+  }
+  return 10 * magnitude;
+}
+
+// Bar outline with 4px rounded top corners and a square bottom on the baseline
+function barPath(x, y, width, height) {
+  const r = Math.min(4, height, width / 2);
+  const base = y + height;
+  return `M${x},${base} V${y + r} A${r},${r} 0 0 1 ${x + r},${y} H${x + width - r} ` +
+    `A${r},${r} 0 0 1 ${x + width},${y + r} V${base} Z`;
+}
+
+function renderWeekly(weeks) {
+  lastWeeks = weeks;
+  chartBox.querySelector('svg')?.remove();
+  chartTooltip.hidden = true;
+
+  const width = chartBox.clientWidth;
+  const height = 240;
+  const margin = { top: 24, right: 8, bottom: 28, left: 40 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const baseline = margin.top + plotH;
+
+  const maxKm = Math.max(...weeks.map((w) => w.distance_km));
+  const step = maxKm > 0 ? niceStep(maxKm) : 5;
+  const top = maxKm > 0 ? Math.ceil(maxKm / step) * step : 4 * step;
+  const yFor = (km) => baseline - (km / top) * plotH;
+
+  const root = svg('svg', {
+    width,
+    height,
+    role: 'list',
+    'aria-label': 'Kilometres per week for the last 12 weeks',
+  });
+
+  // Gridlines and y-axis labels
+  for (let value = 0; value <= top + 1e-9; value += step) {
+    const y = yFor(value);
+    root.append(svg('line', { x1: margin.left, x2: width - margin.right, y1: y, y2: y, class: value === 0 ? 'baseline' : 'gridline' }));
+    const label = svg('text', { x: margin.left - 8, y: y + 4, class: 'tick', 'text-anchor': 'end' });
+    label.textContent = formatDistance(value);
+    root.append(label);
+  }
+
+  // Only label the extremes that matter: this week and the best week
+  const lastIndex = weeks.length - 1;
+  const bestIndex = maxKm > 0 ? weeks.findIndex((w) => w.distance_km === maxKm) : -1;
+
+  const slotW = plotW / weeks.length;
+  const barW = Math.min(24, slotW * 0.6);
+
+  weeks.forEach((week, i) => {
+    const slotX = margin.left + i * slotW;
+    const barX = slotX + (slotW - barW) / 2;
+    const isCurrent = i === lastIndex;
+
+    const runsText = `${week.runs} ${week.runs === 1 ? 'run' : 'runs'}`;
+    const slot = svg('g', {
+      class: 'slot',
+      tabindex: 0,
+      role: 'listitem',
+      'aria-label': `Week ${week.week_start} to ${week.week_end}: ${formatDistance(week.distance_km)} km, ${runsText}`,
+    });
+
+    // Faint full-height track, so a week with no runs still shows as an empty bar
+    slot.append(svg('path', { d: barPath(barX, margin.top, barW, plotH), class: 'track' }));
+    if (week.distance_km > 0) {
+      const y = yFor(week.distance_km);
+      slot.append(svg('path', { d: barPath(barX, y, barW, baseline - y), class: 'bar' }));
+    }
+    // Hit target: the whole column, bigger than the bar itself
+    slot.append(svg('rect', { x: slotX, y: margin.top, width: slotW, height: plotH, class: 'hit' }));
+
+    if (i === lastIndex || i === bestIndex) {
+      const value = svg('text', { x: barX + barW / 2, y: yFor(week.distance_km) - 6, class: 'value', 'text-anchor': 'middle' });
+      value.textContent = formatDistance(week.distance_km);
+      slot.append(value);
+    }
+
+    const dateLabel = svg('text', { x: barX + barW / 2, y: baseline + 18, class: isCurrent ? 'tick current' : 'tick', 'text-anchor': 'middle' });
+    dateLabel.textContent = isCurrent ? 'This week' : shortDate(week.week_start);
+    slot.append(dateLabel);
+
+    const show = () => showWeekTooltip(week, isCurrent, barX + barW / 2, yFor(week.distance_km), width);
+    slot.addEventListener('pointerenter', show);
+    slot.addEventListener('focus', show);
+    slot.addEventListener('pointerleave', () => (chartTooltip.hidden = true));
+    slot.addEventListener('blur', () => (chartTooltip.hidden = true));
+
+    root.append(slot);
+  });
+
+  chartBox.prepend(root);
+  renderWeeklyTable(weeks);
+}
+
+function showWeekTooltip(week, isCurrent, x, y, chartWidth) {
+  const value = document.createElement('strong');
+  value.textContent = `${formatDistance(week.distance_km)} km`;
+  const runs = document.createElement('span');
+  runs.textContent = ` · ${week.runs} ${week.runs === 1 ? 'run' : 'runs'}`;
+  const dates = document.createElement('div');
+  dates.className = 'chart-tooltip-dates';
+  dates.textContent = `${week.week_start} to ${week.week_end}${isCurrent ? ' (this week, so far)' : ''}`;
+  chartTooltip.replaceChildren(value, runs, dates);
+
+  chartTooltip.hidden = false;
+  // Keep the tooltip inside the chart near the left and right edges
+  const half = chartTooltip.offsetWidth / 2;
+  chartTooltip.style.left = `${Math.min(Math.max(x, half), chartWidth - half)}px`;
+  chartTooltip.style.top = `${y - 10}px`;
+}
+
+function renderWeeklyTable(weeks) {
+  const body = document.getElementById('weekly-table-body');
+  body.replaceChildren();
+  for (const week of weeks) {
+    const row = document.createElement('tr');
+    for (const [text, className] of [
+      [`${week.week_start} to ${week.week_end}`, ''],
+      [week.runs, 'num'],
+      [formatDistance(week.distance_km), 'num'],
+    ]) {
+      const cell = document.createElement('td');
+      cell.textContent = text;
+      if (className) cell.className = className;
+      row.appendChild(cell);
+    }
+    body.appendChild(row);
+  }
+}
+
+async function loadWeekly() {
+  try {
+    const res = await fetch('/api/weekly');
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    renderWeekly(await res.json());
+  } catch (err) {
+    showErrors(`Could not load weekly chart: ${err.message}`);
+  }
+}
+
+// Redraw at the new width when the window is resized
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => lastWeeks.length && renderWeekly(lastWeeks), 150);
+});
+
 // Reload everything that depends on the runs (after add, edit or delete)
 function refresh() {
-  return Promise.all([loadRuns(), loadSummary()]);
+  return Promise.all([loadRuns(), loadSummary(), loadWeekly()]);
 }
 
 // ---- Edit mode ----

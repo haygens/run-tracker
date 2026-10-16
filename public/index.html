@@ -52,6 +52,26 @@
       </dl>
     </section>
 
+    <section id="weekly">
+      <h2>Km per week <span class="stat-note">last 12 weeks, Monday to Sunday</span></h2>
+      <div id="weekly-chart" class="chart">
+        <div id="weekly-tooltip" class="chart-tooltip" role="status" hidden></div>
+      </div>
+      <details class="chart-table">
+        <summary>Show as table</summary>
+        <table>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th class="num">Runs</th>
+              <th class="num">Distance (km)</th>
+            </tr>
+          </thead>
+          <tbody id="weekly-table-body"></tbody>
+        </table>
+      </details>
+    </section>
+
     <section>
       <h2 id="form-heading">Add a run</h2>
       <form id="run-form" novalidate>

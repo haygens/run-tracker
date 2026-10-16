@@ -2,7 +2,7 @@ const path = require('node:path');
 const express = require('express');
 const db = require('./db');
 const { validateRun } = require('./validate');
-const { summarize } = require('./summary');
+const { summarize, weeklyTotals } = require('./summary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +42,12 @@ app.post('/api/runs', (req, res) => {
 app.get('/api/summary', (req, res) => {
   const runs = db.prepare('SELECT * FROM runs').all();
   res.json(summarize(runs));
+});
+
+// Km per week for the last 12 weeks, oldest first (for the chart)
+app.get('/api/weekly', (req, res) => {
+  const runs = db.prepare('SELECT * FROM runs').all();
+  res.json(weeklyTotals(runs));
 });
 
 // "12" -> 12; anything that isn't a positive whole number -> null

@@ -147,3 +147,22 @@
   - Names appear in PBs (Grouse Grind).
   - Clearing a name falls back to the type.
   - Names survive a refresh.
+- **Day 2, step 6: weekly km bar chart.**
+  - **`GET /api/weekly`** returns 12 weeks, oldest first: `{ week_start, week_end, distance_km, runs }`.
+    - Weeks run Monday to Sunday. The current week stops at today, the same range as "This week" in the summary, so the two always agree.
+    - Weeks with no runs are included with 0 km instead of being skipped.
+    - The calculation is `weeklyTotals` in `summary.js`, reusing the week and period helpers.
+  - **Chart** below the Progress section, drawn as plain SVG in `app.js` with no library:
+    - **Bars:** one blue series, at most 24px wide, with rounded tops and a flat base.
+    - **Empty weeks:** every week has a faint full-height column behind it, so an empty week still shows as an empty bar.
+    - **Axis:** a y-axis with clean steps (e.g. 0/10/20/30) and faint gridlines.
+    - **Labels:** x labels are each week's Monday (e.g. "12 Oct"), with "This week" for the last one. Only this week's bar and the best week's bar get a value on top, to avoid clutter.
+    - **Hover:** the whole column is the hover target, not just the bar. It shows "23.7 km · 4 runs" and "2026-10-12 to 2026-10-16 (this week, so far)", and the column highlights.
+    - **Keyboard:** the same tooltip appears when a week gets keyboard focus (Tab).
+    - **Show as table:** a dropdown under the chart lists the same 12 weeks as numbers.
+    - **Updates:** the chart redraws after every add, edit and delete, and when the window is resized.
+  - **Testing:**
+    - In Node, with fixed dates: 12 consecutive Mondays, empty weeks present, the first week's Sunday included, the run the day before the window excluded, a future-dated run excluded, and today being a Monday, a Sunday, or 1 January.
+    - Rendered in headless Edge against a test server on a throwaway database, and checked the screenshots: bar heights matched the axis, empty weeks visible, no overlapping labels.
+    - Hovered bars with real mouse events: the tooltip showed the right dates and km, stayed inside the chart at both edges, and hid when the mouse left. Keyboard focus showed the same tooltip.
+  - CLAUDE.md updated with the empty-week, current-week and hover details.

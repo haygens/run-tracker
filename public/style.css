@@ -264,3 +264,113 @@ h3 {
 .pbs dt .stat-note {
   margin: 0;
 }
+
+/* ---- Weekly chart ---- */
+
+h2 .stat-note {
+  margin-left: 6px;
+}
+
+.chart {
+  position: relative;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart .gridline {
+  stroke: #eef0f2;
+  stroke-width: 1;
+}
+
+.chart .baseline {
+  stroke: #d0d7de;
+  stroke-width: 1;
+}
+
+.chart .tick {
+  font-size: 12px;
+  fill: #59636e;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart .tick.current {
+  fill: #1f2328;
+  font-weight: 600;
+}
+
+.chart .value {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #1f2328;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.chart .track {
+  fill: #f2f4f7;
+}
+
+.chart .bar {
+  fill: #2a78d6;
+}
+
+.chart .hit {
+  fill: transparent;
+  cursor: default;
+}
+
+.chart .slot {
+  outline: none;
+}
+
+/* Hovered or focused week responds: track darkens, bar lightens */
+.chart .slot:hover .track,
+.chart .slot:focus-visible .track {
+  fill: #e3e8ee;
+}
+
+.chart .slot:hover .bar,
+.chart .slot:focus-visible .bar {
+  fill: #4b8fe2;
+}
+
+.chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: #fff;
+  border: 1px solid #d8dee4;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(31, 35, 40, 0.12);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip strong {
+  font-size: 0.95rem;
+}
+
+.chart-tooltip span,
+.chart-tooltip-dates {
+  color: #59636e;
+}
+
+.chart-table {
+  margin-top: 12px;
+}
+
+.chart-table summary {
+  cursor: pointer;
+  color: #59636e;
+  font-size: 0.85rem;
+}
+
+.chart-table table {
+  margin-top: 8px;
+  max-width: 480px;
+}
