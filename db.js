@@ -1,8 +1,9 @@
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-// Single-file database next to the code (gitignored via *.db)
-const DB_PATH = path.join(__dirname, 'runs.db');
+// Single-file database next to the code (gitignored via *.db).
+// DB_PATH can point somewhere else, e.g. a throwaway file for testing.
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'runs.db');
 
 const db = new DatabaseSync(DB_PATH);
 
