@@ -1,4 +1,4 @@
-const RUN_TYPES = ['easy', 'long', 'tempo', 'intervals', 'race', 'trail'];
+const RUN_TYPES = ['easy', 'long', 'tempo', 'intervals', 'race', 'trail', 'hike'];
 
 // True only for a real calendar date in YYYY-MM-DD form (rejects 2026-02-30)
 function isValidDate(value) {

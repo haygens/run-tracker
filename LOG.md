@@ -48,3 +48,20 @@
   - The table text is filled in safely (with `textContent`, not `innerHTML`), so data from the database can't inject HTML into the page.
   - New `public/style.css`: a simple desktop layout.
   - Validation is still done on the server. The browser only checks the time format, because that is the one field it has to convert.
+- **Changes you asked for after testing Day 1.**
+  - **Whole-number distances and tidier display.**
+    - Distance `5` is accepted as 5 km. The server already allowed it; the form now uses `step="any"` with the placeholder "5 or 5.2".
+    - The table and the "Saved" message show at most 2 decimals with no trailing zeros: `5`, `5.2`, `5.25`.
+    - Why: `5.00` and `5.20` were cluttered.
+  - **Time is entered in minutes.**
+    - `75` = 75 min, `65:30` = 65 min 30 s, and `1:05:30` is the same as `65:30`.
+    - Seconds must be two digits, 00–59. Minutes in `h:mm:ss` must also be 00–59.
+    - Zero, decimals, negative numbers and other formats get a specific error message.
+    - The label is now "Time (minutes)" with a hint under the field. The table still shows `1:05:30` for an hour or more and `27:00` otherwise.
+    - Why: typing minutes is quicker than always typing hh:mm:ss.
+  - **New run type: hike.** Added to the server's list in `validate.js` and to the dropdown.
+    - The table's CHECK constraint listing the run types can't be edited in SQLite. So `db.js` now builds that list from `validate.js`, so the two can't drift apart.
+    - It also rebuilds an older table once, keeping every run and its ID. The server prints "Updating runs table to allow new run types..." when it does this.
+    - Tested on a copy of the real `runs.db`: all 6 runs and their IDs were kept, a hike could be added, and the next ID continued at 7. A second start didn't migrate again.
+  - **Form layout.** The time hint makes that field taller, so fields now line up along the top, and the button has a blank caption to keep it level with the inputs.
+  - CLAUDE.md updated to match: distance, time input, the run type list, and the display rules.

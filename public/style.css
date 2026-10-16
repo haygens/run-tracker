@@ -32,10 +32,11 @@ section {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
-#run-form label {
+#run-form label,
+#run-form .form-actions {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -51,6 +52,13 @@ section {
   border: 1px solid #b6bec7;
   border-radius: 4px;
   width: 130px;
+}
+
+#run-form .hint {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #59636e;
+  max-width: 130px;
 }
 
 #run-form button {

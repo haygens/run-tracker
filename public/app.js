@@ -5,15 +5,44 @@ const emptyNote = document.getElementById('runs-empty');
 
 // ---- Formatting helpers ----
 
-// "1:02:03" or "27:00" -> seconds. Returns null if the text isn't a valid time.
+const TIME_FORMAT_HELP = 'Enter time as minutes (75), min:sec (65:30) or h:mm:ss (1:05:30)';
+
+// Minutes-based time input -> { seconds } or { error }.
+//   "75"      -> 75 min
+//   "65:30"   -> 65 min 30 s (minutes can be any size)
+//   "1:05:30" -> same as 65:30 (minutes must be 0-59 here)
+// Seconds must always be two digits, 00-59.
 function parseDuration(text) {
-  const match = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/.exec(text.trim());
-  if (!match) return null;
-  const h = Number(match[1] || 0);
-  const m = Number(match[2]);
-  const s = Number(match[3]);
-  if (m > 59 || s > 59) return null;
-  return h * 3600 + m * 60 + s;
+  const value = text.trim();
+  if (value === '') return { error: `Time is required. ${TIME_FORMAT_HELP}.` };
+
+  let h = 0;
+  let m;
+  let s = 0;
+  let match;
+  if ((match = /^(\d+)$/.exec(value))) {
+    m = Number(match[1]);
+  } else if ((match = /^(\d+):(\d{2})$/.exec(value))) {
+    m = Number(match[1]);
+    s = Number(match[2]);
+  } else if ((match = /^(\d+):(\d{2}):(\d{2})$/.exec(value))) {
+    h = Number(match[1]);
+    m = Number(match[2]);
+    s = Number(match[3]);
+    if (m > 59) return { error: `In h:mm:ss, minutes must be 00-59 (got "${value}").` };
+  } else {
+    return { error: `"${value}" is not a valid time. ${TIME_FORMAT_HELP}, with whole numbers only.` };
+  }
+
+  if (s > 59) return { error: `Seconds must be 00-59 (got "${value}").` };
+  const seconds = h * 3600 + m * 60 + s;
+  if (seconds === 0) return { error: 'Time must be more than 0.' };
+  return { seconds };
+}
+
+// 5 -> "5", 5.2 -> "5.2", 5.25 -> "5.25" (at most 2 decimals, no trailing zeros)
+function formatDistance(km) {
+  return String(Number(km.toFixed(2)));
 }
 
 // 3723 -> "1:02:03", 1620 -> "27:00"
@@ -73,7 +102,7 @@ function renderRuns(runs) {
     const cells = [
       [run.date, ''],
       [run.run_type, ''],
-      [run.distance_km.toFixed(2), 'num'],
+      [formatDistance(run.distance_km), 'num'],
       [run.elevation_m, 'num'],
       [formatDuration(run.duration_sec), 'num'],
       [formatPace(run.duration_sec, run.distance_km), 'num'],
@@ -106,9 +135,9 @@ form.addEventListener('submit', async (event) => {
   message.hidden = true;
 
   const data = new FormData(form);
-  const durationSec = parseDuration(data.get('duration'));
-  if (durationSec === null) {
-    showErrors('Time must be in hh:mm:ss format, e.g. 00:27:00 or 1:05:30');
+  const duration = parseDuration(data.get('duration'));
+  if (duration.error) {
+    showErrors(duration.error);
     return;
   }
 
@@ -117,7 +146,7 @@ form.addEventListener('submit', async (event) => {
     date: data.get('date'),
     distance_km: data.get('distance_km') === '' ? null : Number(data.get('distance_km')),
     elevation_m: data.get('elevation_m') === '' ? null : Number(data.get('elevation_m')),
-    duration_sec: durationSec,
+    duration_sec: duration.seconds,
     run_type: data.get('run_type'),
   };
 
@@ -136,7 +165,7 @@ form.addEventListener('submit', async (event) => {
       return;
     }
 
-    showSuccess(`Saved: ${body.distance_km} km on ${body.date}`);
+    showSuccess(`Saved: ${formatDistance(body.distance_km)} km on ${body.date}`);
     // Keep date and type (handy for adding several runs), clear the rest
     form.elements.distance_km.value = '';
     form.elements.elevation_m.value = '0';

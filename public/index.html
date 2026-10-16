@@ -18,15 +18,17 @@
         </label>
         <label>
           Distance (km)
-          <input type="number" name="distance_km" min="0.01" step="0.01" placeholder="5.00" required>
+          <input type="number" name="distance_km" min="0" step="any" placeholder="5 or 5.2" required>
         </label>
         <label>
           Elevation (m)
           <input type="number" name="elevation_m" min="0" step="1" value="0" required>
         </label>
         <label>
-          Time (hh:mm:ss)
-          <input type="text" name="duration" placeholder="00:27:00" autocomplete="off" required>
+          Time (minutes)
+          <input type="text" name="duration" placeholder="75 or 65:30" autocomplete="off" required
+                 aria-describedby="duration-hint">
+          <small id="duration-hint" class="hint">75 = 75 min · 65:30 = 65 min 30 s · 1:05:30 also works</small>
         </label>
         <label>
           Type
@@ -37,9 +39,14 @@
             <option value="intervals">Intervals</option>
             <option value="race">Race</option>
             <option value="trail">Trail</option>
+            <option value="hike">Hike</option>
           </select>
         </label>
-        <button type="submit">Add run</button>
+        <!-- Blank caption keeps the button level with the inputs -->
+        <div class="form-actions">
+          <span aria-hidden="true">&nbsp;</span>
+          <button type="submit">Add run</button>
+        </div>
       </form>
       <div id="form-message" role="status" hidden></div>
     </section>

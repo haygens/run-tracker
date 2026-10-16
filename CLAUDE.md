@@ -14,12 +14,16 @@ Deploying online and linking it from my portfolio comes later, after the first v
 A run has:
 - id
 - date (YYYY-MM-DD)
-- distance_km (decimal, > 0)
+- distance_km (number, > 0; whole numbers like 5 are fine)
 - elevation_m (integer, >= 0)
-- duration_sec (integer, > 0) — entered as hh:mm:ss in the form
-- run_type (one of: easy, long, tempo, intervals, race, trail)
+- duration_sec (integer, > 0) — entered in the form as minutes: 75 (75 min), 65:30 (65 min 30 s), or 1:05:30 (same as 65:30); seconds must be 00–59, anything else is rejected with a clear message
+- run_type (one of: easy, long, tempo, intervals, race, trail, hike)
 
 Pace (min/km) is calculated from duration and distance, not stored.
+
+Display:
+- Distance without unneeded decimals: 5, 5.2, 5.25 (not 5.00 or 5.20)
+- Time as h:mm:ss when an hour or more (1:05:30), otherwise mm:ss (27:00)
 
 ## API
 - GET    /api/runs          list runs, newest first
