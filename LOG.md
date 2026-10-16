@@ -65,3 +65,9 @@
     - Tested on a copy of the real `runs.db`: all 6 runs and their IDs were kept, a hike could be added, and the next ID continued at 7. A second start didn't migrate again.
   - **Form layout.** The time hint makes that field taller, so fields now line up along the top, and the button has a blank caption to keep it level with the inputs.
   - CLAUDE.md updated to match: distance, time input, the run type list, and the display rules.
+- **Browser test of the three changes.** All passed, with no console errors:
+  - The database migration kept all 6 runs.
+  - Distances show without extra decimals.
+  - The time formats `75`, `65:30` and `1:05:30` work.
+  - The bad times `65:60`, `65:5`, `75.5` and `0` are rejected.
+  - The hike type saves with the correct pace.
