@@ -3,9 +3,66 @@
 <head>
   <meta charset="utf-8">
   <title>Run Tracker</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Run Tracker</h1>
-  <p>Server is running. The add-run form and runs table come in step 3.</p>
+  <main>
+    <h1>Run Tracker</h1>
+
+    <section>
+      <h2>Add a run</h2>
+      <form id="run-form" novalidate>
+        <label>
+          Date
+          <input type="date" name="date" required>
+        </label>
+        <label>
+          Distance (km)
+          <input type="number" name="distance_km" min="0.01" step="0.01" placeholder="5.00" required>
+        </label>
+        <label>
+          Elevation (m)
+          <input type="number" name="elevation_m" min="0" step="1" value="0" required>
+        </label>
+        <label>
+          Time (hh:mm:ss)
+          <input type="text" name="duration" placeholder="00:27:00" autocomplete="off" required>
+        </label>
+        <label>
+          Type
+          <select name="run_type" required>
+            <option value="easy">Easy</option>
+            <option value="long">Long</option>
+            <option value="tempo">Tempo</option>
+            <option value="intervals">Intervals</option>
+            <option value="race">Race</option>
+            <option value="trail">Trail</option>
+          </select>
+        </label>
+        <button type="submit">Add run</button>
+      </form>
+      <div id="form-message" role="status" hidden></div>
+    </section>
+
+    <section>
+      <h2>Runs</h2>
+      <table id="runs-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th class="num">Distance (km)</th>
+            <th class="num">Elevation (m)</th>
+            <th class="num">Time</th>
+            <th class="num">Pace (min/km)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="runs-empty" hidden>No runs yet. Add your first one above.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>

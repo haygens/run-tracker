@@ -37,3 +37,14 @@
     - an empty object
     - broken JSON
   - Every bad input was rejected with a 400, and only the valid run was saved.
+- **Day 1, step 3: add-run form and runs table with a pace column.**
+  - `public/index.html` now has an add-run form and a runs table. The form has date (defaults to today), distance, elevation (defaults to 0), time and type.
+  - New `public/app.js`:
+    - Turns the hh:mm:ss time into seconds before sending. `mm:ss` like `27:00` also works.
+    - Posts the run to the API. The server's error messages are shown as a list under the form.
+    - Reloads the table after a run is saved.
+  - Pace is calculated in the browser from time ÷ distance and shown as min:sec per km. It is rounded to the nearest second, and it isn't stored, as CLAUDE.md says.
+  - After a successful save, distance, elevation and time are cleared, but date and type are kept. Why: that makes it quick to enter several runs from the same day or week.
+  - The table text is filled in safely (with `textContent`, not `innerHTML`), so data from the database can't inject HTML into the page.
+  - New `public/style.css`: a simple desktop layout.
+  - Validation is still done on the server. The browser only checks the time format, because that is the one field it has to convert.
