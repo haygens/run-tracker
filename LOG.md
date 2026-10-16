@@ -228,3 +228,59 @@
 - **Day 3, step 8: README.md.**
   - Covers what the app does, numbered PowerShell setup (install Node, `npm install`, create `.env` with the hidden `Read-Host` method, `npm start`), how to use it, the API with an example run, troubleshooting, known limitations, the test environment variables, and a file guide.
   - I ran the `.env` commands in Windows PowerShell 5.1 (with a stand-in for the interactive `Read-Host`). The file has no BOM, and the server accepted a password containing an accent, a space and a `#`.
+
+## Project summary (Day 3, step 9)
+
+### What was planned
+A personal run log for my laptop, to be built in 3 days:
+- an Express + SQLite API, with validation
+- a page with an add-run form and a runs table with pace
+- edit and delete
+- progress numbers: all-time and this week/month totals, personal bests, streak
+- a weekly km bar chart
+- a single password on writes
+- a README
+
+All 9 planned steps were finished.
+
+### What changed from the plan, and why
+- **Time input:** planned as hh:mm:ss. Changed after testing Day 1 to **minutes**: `75`, `65:30`, or `1:05:30`. Typing minutes is quicker, and seconds are checked to be 00–59.
+- **Distance:** whole numbers like `5` are accepted, and the display drops unneeded decimals (`5`, `5.2`, not `5.00`, `5.20`). It looked cluttered.
+- **New run type `hike`.** The database's list of allowed types couldn't be edited in place, so the table is rebuilt once and the runs copied over.
+- **Optional run names** (e.g. "Seawall Loop").
+  - A run without a name shows its type ("Long").
+  - That fallback isn't saved, so changing a run's type also changes its displayed name.
+- **Hikes in personal bests:** at first excluded from fastest pace. After testing, I decided **hikes count everywhere**. Fastest pace still needs 5 km or more.
+- **Personal bests show only the value and the name** (`3:45 /km · Grouse Grind`), not the date, type and other details.
+- **Smaller decisions along the way:**
+  - Used Node's built-in SQLite instead of an npm package, so nothing has to compile on Windows.
+  - Edit reuses the add form.
+  - The current week runs Monday to today in both the chart and the summary, so they always match.
+  - Added `/api/health`.
+
+### Problems hit and how they were fixed
+- **Stopping a test server closed every Node process on the laptop.** Added a rule to CLAUDE.md: stop only that server's own process ID. Every later test followed it.
+- **`POST /api/runs` returned 404 after step 2.** An old server was still running the old code.
+  - The code review in step 8 found the real cause: when the port was taken, the new server printed "listening" and quietly exited.
+  - Fixed: it now says the port is in use and how to stop the old server.
+- **SQLite can't change a CHECK constraint.** Adding `hike` needed a one-time table rebuild that keeps every run and its ID.
+  - Adding `name` used `ALTER TABLE`. That runs first, because the rebuild copies the name column.
+  - Both were tested on copies of the real database before touching it.
+- **PowerShell 5.1 hid the server's 400 error messages.** Fixed in the test commands by reading `$_.ErrorDetails.Message`.
+- **Setting up `.env` on Windows:**
+  - Notepad didn't save `.env` on my machine.
+  - PowerShell 5.1 adds an invisible BOM that hides the password key from Node.
+  - An unquoted `#` cuts the password short.
+  - Fixed with: the `Read-Host` method (hidden input, no BOM, single quotes), and the server stripping any BOM. A clear message is shown if the file, the password, or a real (non-placeholder) password is missing.
+- **Browsers can't send accented characters in headers.** The page URL-encodes the password and the server accepts either form.
+- **Esc in the password dialog also cancelled edit mode.** The Esc handler now ignores Esc while the dialog is open.
+- **SQLite side files** (`-journal`, `-wal`, `-shm`) could have been committed with run data in them. Added to `.gitignore`.
+
+### What I'd do next
+- **Deploy** to a host that runs Node and keeps files between restarts (e.g. Render, Railway or Fly.io; GitHub Pages can't run a server):
+  - set `WRITE_PASSWORD` as a host secret, not a file
+  - make sure it's served over HTTPS so the password isn't sent in plain text
+  - set the time zone so "today" matches mine
+  - add limits on wrong password attempts
+- **Portfolio widget:** a small card on my portfolio site that reads `GET /api/summary` (this week's km, the streak, the PBs). The API will need to allow requests from the portfolio's website first: CORS for GET only.
+- **Smaller ideas:** backing up `runs.db`, a mobile layout, CSV export.
