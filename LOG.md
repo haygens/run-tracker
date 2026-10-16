@@ -201,3 +201,15 @@
     - 14 API checks: public GETs; 401 for missing, wrong and wrong-case passwords and for broken JSON without a password; 201/200/400 with the right password; a test password with an accent, a space and a `#`.
     - 12 browser checks in headless Edge: dialog appears, wrong then right, no second prompt, survives reload, Forget, Cancel, Esc during edit, delete asks after confirm, a new tab asks again. No console errors.
     - All tests used test `.env` files and a throwaway database. Your real password was never chosen or written anywhere.
+- **Browser test of the password (step 7).** Everything passed, with no console errors:
+  - A wrong password is rejected.
+  - The right one saves and is remembered for the tab.
+  - Add, edit and delete don't ask a second time.
+  - It survives F5.
+  - A new tab asks again.
+  - Cancel and Esc change nothing.
+  - Esc in the dialog keeps edit mode.
+  - Delete confirms before asking for the password.
+  - Forget password works.
+  - The startup check correctly refused to run while the password was still the placeholder.
+  - Editing `.env` in Notepad didn't save on my machine, so I set it from PowerShell with the `Read-Host` method instead.
