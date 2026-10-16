@@ -169,6 +169,63 @@ tbody.addEventListener('click', (event) => {
   if (button.dataset.action === 'delete') deleteRun(run);
 });
 
+// ---- Summary ----
+
+function setText(id, text) {
+  document.getElementById(id).textContent = text;
+}
+
+// "12.5 km · 2026-10-14 · tempo" style line for a personal best
+function describeBest(value, run) {
+  return run ? `${value} · ${run.date} · ${run.run_type}` : 'None yet';
+}
+
+function renderSummary(s) {
+  setText('all-km', `${formatDistance(s.all_time.distance_km)} km`);
+  setText('all-elev', `${s.all_time.elevation_m} m`);
+  setText('all-runs', s.all_time.runs);
+  setText('all-time', formatDuration(s.all_time.duration_sec));
+
+  setText('week-km', `${formatDistance(s.this_week.distance_km)} km`);
+  setText('week-runs', s.this_week.runs);
+  setText('week-range', `${s.this_week.start} to ${s.this_week.end}`);
+
+  setText('month-km', `${formatDistance(s.this_month.distance_km)} km`);
+  setText('month-runs', s.this_month.runs);
+  setText('month-range', `${s.this_month.start} to ${s.this_month.end}`);
+
+  const { days, start, end } = s.streak;
+  setText('streak-days', `${days} ${days === 1 ? 'day' : 'days'}`);
+  setText('streak-range', days > 0 ? `${start} to ${end}` : 'Run today to start one');
+
+  const pb = s.personal_bests;
+  setText('pb-longest', describeBest(pb.longest_run && `${formatDistance(pb.longest_run.distance_km)} km`, pb.longest_run));
+  setText('pb-elevation', describeBest(pb.most_elevation && `${pb.most_elevation.elevation_m} m`, pb.most_elevation));
+  setText(
+    'pb-pace',
+    describeBest(
+      pb.fastest_pace &&
+        `${formatDuration(pb.fastest_pace.pace_sec_per_km)} /km (${formatDistance(pb.fastest_pace.distance_km)} km in ${formatDuration(pb.fastest_pace.duration_sec)})`,
+      pb.fastest_pace
+    )
+  );
+}
+
+async function loadSummary() {
+  try {
+    const res = await fetch('/api/summary');
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    renderSummary(await res.json());
+  } catch (err) {
+    showErrors(`Could not load summary: ${err.message}`);
+  }
+}
+
+// Reload everything that depends on the runs (after add, edit or delete)
+function refresh() {
+  return Promise.all([loadRuns(), loadSummary()]);
+}
+
 // ---- Edit mode ----
 
 function startEdit(run) {
@@ -238,7 +295,7 @@ async function deleteRun(run) {
       showSuccess(`Deleted: ${describeRun(run)}`);
     }
     if (editingId === run.id) stopEdit();
-    await loadRuns();
+    await refresh();
   } catch (err) {
     showErrors(`Could not reach the server: ${err.message}`);
   }
@@ -283,7 +340,7 @@ form.addEventListener('submit', async (event) => {
       // The run being edited no longer exists, so go back to adding
       if (isEdit && res.status === 404) {
         stopEdit();
-        await loadRuns();
+        await refresh();
       }
       return;
     }
@@ -298,7 +355,7 @@ form.addEventListener('submit', async (event) => {
       form.elements.elevation_m.value = '0';
       form.elements.duration.value = '';
     }
-    await loadRuns();
+    await refresh();
   } catch (err) {
     showErrors(`Could not reach the server: ${err.message}`);
   } finally {
@@ -307,4 +364,4 @@ form.addEventListener('submit', async (event) => {
 });
 
 form.elements.date.value = todayLocal();
-loadRuns();
+refresh();

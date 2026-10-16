@@ -2,6 +2,7 @@ const path = require('node:path');
 const express = require('express');
 const db = require('./db');
 const { validateRun } = require('./validate');
+const { summarize } = require('./summary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,12 @@ app.post('/api/runs', (req, res) => {
 
   const created = db.prepare('SELECT * FROM runs WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(created);
+});
+
+// All-time totals, this week/month, personal bests and current streak
+app.get('/api/summary', (req, res) => {
+  const runs = db.prepare('SELECT * FROM runs').all();
+  res.json(summarize(runs));
 });
 
 // "12" -> 12; anything that isn't a positive whole number -> null

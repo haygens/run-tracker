@@ -94,3 +94,27 @@
   - refresh
   - adding a run
   - Used delete to remove duplicate and test runs.
+- **Day 2, step 5: `/api/summary`, shown at the top of the page.**
+  - The calculations are in a new `summary.js` as a plain function of `(runs, today)`. Why: it can be tested with any date, and step 6's weekly chart can reuse its Monday-of-week helper.
+  - `GET /api/summary` returns:
+    - **All time:** km, elevation, number of runs, total time in seconds.
+    - **This week** (Monday to today) and **this month** (1st to today): km and number of runs, plus the date range used.
+    - **Personal bests:** longest run, most elevation, and fastest pace (5 km or more, not counting hikes). Each comes back as the full run; fastest pace also includes its sec/km.
+    - **Streak:** days, plus its start and end dates.
+  - **Rules:**
+    - "Today" comes from the laptop's clock. Week and month ranges stop at today, so a run dated in the future isn't counted in this week or month. It still counts in all-time totals.
+    - Streak: two runs on the same day count as one day. It counts back from today, or from yesterday if there's no run yet today. Otherwise it's 0.
+    - Ties for a personal best go to the earliest run, the first to set it.
+    - Most elevation shows "None yet" if every run has 0 m.
+    - Totals are rounded to 2 decimals so float noise like `15.700000000000001` doesn't show up.
+  - **Page:** a new Progress section at the top. It has All time, This week, This month and Current streak cards, then a Personal bests list. It reloads after every add, edit and delete.
+  - Tested with fixed dates in Node:
+    - weeks crossing month, year and DST boundaries
+    - the 5 km minimum and the hike exclusion for pace
+    - ties
+    - two runs on one day
+    - the from-yesterday streak rule
+    - a future-dated run
+    - an empty database
+  - Also tested end to end through a test server on a throwaway database.
+  - CLAUDE.md updated with the week/month ranges, the hike rule for fastest pace, and the streak rule.

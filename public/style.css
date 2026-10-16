@@ -196,3 +196,67 @@ td.actions {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---- Summary ---- */
+
+h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #59636e;
+  margin: 0 0 8px;
+}
+
+.stat-groups {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-group {
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.stat-group dl,
+.pbs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.stat-group dt,
+.pbs dt {
+  color: #59636e;
+}
+
+.stat-group dd,
+.pbs dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-group dd {
+  text-align: right;
+}
+
+.stat-big {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.stat-note {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #59636e;
+  margin: 6px 0 0;
+}
+
+.pbs dt .stat-note {
+  margin: 0;
+}

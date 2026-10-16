@@ -9,6 +9,49 @@
   <main>
     <h1>Run Tracker</h1>
 
+    <section id="summary">
+      <h2>Progress</h2>
+      <div class="stat-groups">
+        <div class="stat-group">
+          <h3>All time</h3>
+          <dl>
+            <dt>Distance</dt><dd id="all-km">–</dd>
+            <dt>Elevation</dt><dd id="all-elev">–</dd>
+            <dt>Runs</dt><dd id="all-runs">–</dd>
+            <dt>Time</dt><dd id="all-time">–</dd>
+          </dl>
+        </div>
+        <div class="stat-group">
+          <h3>This week</h3>
+          <dl>
+            <dt>Distance</dt><dd id="week-km">–</dd>
+            <dt>Runs</dt><dd id="week-runs">–</dd>
+          </dl>
+          <p class="stat-note" id="week-range"></p>
+        </div>
+        <div class="stat-group">
+          <h3>This month</h3>
+          <dl>
+            <dt>Distance</dt><dd id="month-km">–</dd>
+            <dt>Runs</dt><dd id="month-runs">–</dd>
+          </dl>
+          <p class="stat-note" id="month-range"></p>
+        </div>
+        <div class="stat-group">
+          <h3>Current streak</h3>
+          <p class="stat-big" id="streak-days">–</p>
+          <p class="stat-note" id="streak-range"></p>
+        </div>
+      </div>
+
+      <h3>Personal bests</h3>
+      <dl class="pbs">
+        <dt>Longest run</dt><dd id="pb-longest">–</dd>
+        <dt>Most elevation</dt><dd id="pb-elevation">–</dd>
+        <dt>Fastest pace <span class="stat-note">(5 km or more, not hikes)</span></dt><dd id="pb-pace">–</dd>
+      </dl>
+    </section>
+
     <section>
       <h2 id="form-heading">Add a run</h2>
       <form id="run-form" novalidate>

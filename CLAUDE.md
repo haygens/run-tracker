@@ -39,9 +39,9 @@ Keep it simple: no user accounts, no login system.
 
 ## Progress features
 - All-time totals: km, elevation, number of runs, total time
-- Weekly and monthly totals, with a bar chart of km per week
-- Personal bests: longest run, most elevation, fastest pace (runs of 5 km or more)
-- Streak: consecutive days with at least one run
+- Weekly and monthly totals (this week = Monday to today, this month = 1st to today: km and number of runs), with a bar chart of km per week
+- Personal bests: longest run, most elevation, fastest pace (runs of 5 km or more, not counting hikes)
+- Streak: consecutive days with at least one run, counting back from today, or from yesterday if there's no run yet today
 - Weeks start on Monday
 
 ## Build order (3-day deadline)
