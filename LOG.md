@@ -284,3 +284,11 @@ All 9 planned steps were finished.
   - add limits on wrong password attempts
 - **Portfolio widget:** a small card on my portfolio site that reads `GET /api/summary` (this week's km, the streak, the PBs). The API will need to allow requests from the portfolio's website first: CORS for GET only.
 - **Smaller ideas:** backing up `runs.db`, a mobile layout, CSV export.
+- **Hand test of `start.bat`.** Everything passed:
+  - Double-click starts the server and opens the browser after "listening".
+  - A second double-click opens a tab and closes itself.
+  - Closing the window stops the server.
+  - The desktop shortcut works.
+  - The missing-`.env` message shows the right path and waits for a key.
+  - Ctrl+C then N shows "Run Tracker has stopped" and waits.
+  - Skipped the optional test with another program on port 3000.
