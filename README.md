@@ -71,6 +71,38 @@ The database file `runs.db` is created on first start, next to the code. It's gi
 
 `npm run dev` does the same as `npm start`, but restarts the server whenever you save a code file.
 
+## Starting it by double-click (start.bat)
+
+After setup, you can skip PowerShell for daily use: **double-click `start.bat`** in the project folder.
+
+- **What it does:**
+  - Checks that Node.js is installed and that `.env` exists. If not, it explains what to do and waits for a key press.
+  - Runs `npm install` the first time, if `node_modules` is missing.
+  - Starts the server and opens http://localhost:3000 in your default browser as soon as the server is ready.
+- **Already running?** If Run Tracker is already running, it just opens the browser and closes itself after a few seconds.
+- **Stopping:** the black window must stay open while you use the app. **Close it to stop Run Tracker.**
+- **If the server stops with an error** (for example, another program is using port 3000), the window stays open so you can read the message.
+
+It uses `curl.exe` (built into Windows 10 and 11) to check when the server is ready.
+
+### Make a desktop shortcut
+
+**With the mouse:**
+
+1. In File Explorer, right-click `start.bat`, then click **Show more options**, then **Send to**, then **Desktop (create shortcut)**.
+2. Rename the shortcut on your desktop to `Run Tracker` if you like.
+
+**Or in PowerShell,** from the project folder:
+
+```powershell
+$shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Desktop'))\Run Tracker.lnk")
+$shortcut.TargetPath = "$PWD\start.bat"
+$shortcut.WorkingDirectory = "$PWD"
+$shortcut.Save()
+```
+
+If you move the project folder, delete the shortcut and make a new one.
+
 ## How to use it
 
 1. **Add a run:** fill in the form and click **Add run**.
@@ -123,7 +155,7 @@ Invoke-RestMethod http://localhost:3000/api/summary
 
 ## Troubleshooting
 
-- **"Run Tracker cannot start: port 3000 is already in use"**: another Run Tracker server is still running. Press **Ctrl+C** in its window, then run `npm start` again.
+- **"Run Tracker cannot start: port 3000 is already in use"**: another Run Tracker server is still running. Press **Ctrl+C** in its window (or close its `start.bat` window), then start it again. `start.bat` handles this for you: if Run Tracker is already running, it just opens the browser. If you still see this message from `start.bat`, a different program is using port 3000.
 - **"Run Tracker cannot start: No .env file found"** or **"WRITE_PASSWORD is missing"**: redo setup step 4.
 - **"…still the placeholder from .env.example"**: you copied `.env.example` without changing the password. Redo setup step 4.
 - **Editing `.env` in Notepad doesn't seem to save**: use the PowerShell commands in step 4 instead.
@@ -151,6 +183,7 @@ These environment variables let you run a test server without touching your real
 | `PORT` | `3000` | Run a second server on another port |
 | `DB_PATH` | `runs.db` next to the code | Use a throwaway database |
 | `ENV_FILE` | `.env` next to the code | Use a test password file |
+| `NO_BROWSER` | not set | `start.bat` only: set to `1` to skip opening the browser |
 
 ```powershell
 [IO.File]::WriteAllText("$env:TEMP\test.env", "WRITE_PASSWORD='test-only'`n", (New-Object Text.UTF8Encoding $false))
@@ -169,5 +202,6 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | `validate.js` | Checks run data and builds the 400 error messages |
 | `summary.js` | Totals, personal bests, streak and weekly numbers |
 | `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog) |
+| `start.bat` | Double-click launcher: checks setup, starts the server, opens the browser |
 | `CLAUDE.md` | Project spec |
 | `LOG.md` | Build log: what changed and why |
