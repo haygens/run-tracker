@@ -49,4 +49,4 @@ function validateRun(body) {
   return { run: { date, distance_km, elevation_m, duration_sec, run_type, name: cleanName } };
 }
 
-module.exports = { validateRun, RUN_TYPES };
+module.exports = { validateRun, isValidDate, RUN_TYPES };

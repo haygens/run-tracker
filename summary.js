@@ -124,4 +124,4 @@ function weeklyTotals(runs, today = todayLocal(), count = 12) {
   return weeks;
 }
 
-module.exports = { summarize, weeklyTotals };
+module.exports = { summarize, weeklyTotals, addDays, mondayOf, todayLocal, round2 };

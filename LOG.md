@@ -297,3 +297,32 @@ All 9 planned steps were finished.
 - **Artifact 3: planned a training plan generator.** Nothing built yet; the plan is in CLAUDE.md.
   - I'm adding a training plan generator. The model writes the plan from my baseline; plain code computes the baseline, checks whether the goal is realistic, and enforces the safety rules.
   - It uses `claude -p`, so it runs on Claude Code access with no API cost.
+- **Artifact 3, part 1: `plan.js`, plain code before the model.** No model code yet; `claude -p` is not called.
+  - `node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4`
+  - **Arguments:** every problem is listed at once, followed by the usage line, and the script exits with code 1. It rejects:
+    - a missing option, an unknown option, or an extra word
+    - a goal other than `5k`, `10k`, `half`, `marathon`
+    - a race date that isn't a real `YYYY-MM-DD` date, or isn't after today
+    - runs per week that isn't a whole number from 1 to 7
+  - **Baseline** from the last 4 full weeks (Monday to Sunday, not counting this week). It prints the date range, every run it counted (with its pace), and km and runs per week, so each number can be checked by hand:
+    - avg km/week = total km ÷ 4 (empty weeks count as 0)
+    - avg runs/week = runs ÷ 4
+    - longest run (ties go to the earliest run, like the personal bests)
+    - typical pace = the median of each run's pace, rounded to the second first so it matches the runs table. Why the median: one slow hike or a fast race barely moves it.
+    - All run types count, hikes included, to match "hikes count everywhere".
+  - **Realism rule:** weeks needed = growth weeks (weekly km +10% at most each week, from baseline up to a peak week of 20/30/40/55 km for 5k/10k/half/marathon) + one cutback week after every 3 growth weeks + taper weeks (3 for a marathon, 2 otherwise).
+    - Realistic if the whole weeks from today to race day are at least that. If not, the suggested earliest race date is today + weeks needed, moved forward to a Sunday.
+    - With no runs in the window there's no baseline to grow from, so the answer is no, with no date.
+    - The peak-week and taper numbers are general guidelines picked for this step and are listed at the top of `plan.js`.
+  - **Read-only database access:** `plan.js` uses the server's `db.js` with a new `DB_READ_ONLY=1` switch. That opens the file read-only, so SQLite refuses any write, and it skips the table setup and migrations.
+    - Why: testing showed that loading `db.js` normally ran its startup migration on an old-format copy of the database, which changed the file.
+    - A missing or old-format database now gives a clear message ("Start the server once…") instead of being created or changed.
+    - The server's behaviour is unchanged.
+  - `summary.js` now exports its date helpers, and `validate.js` exports `isValidDate`, so `plan.js` uses the same week and date rules as the app.
+  - New test hook `PLAN_TODAY=YYYY-MM-DD` pretends it's another day, like `DB_PATH`.
+  - **Testing:**
+    - 9 bad-argument cases.
+    - A test database with hand-worked answers (13.63 km/week, 1.25 runs/week, 16 km longest, 6:00 median pace, 22 weeks needed, earliest race date 2027-03-28). The runs just before the window and in the current week were left out.
+    - A race date that's too soon, today being a Sunday, an even number of paces (median = average of the middle two), and a copy of `runs-backup.db`.
+    - Confirmed that `runs.db`, the database copies and the old-format copy are byte-for-byte unchanged afterwards, that a write in read-only mode is refused, and that a missing file isn't created.
+  - **Noticed:** the real `runs.db` currently has 0 runs (last changed Oct 19); `runs-backup.db` has 7. So on real data, `plan.js` says "Realistic: no, no baseline". Nothing was changed in either file.

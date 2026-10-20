@@ -6,7 +6,11 @@ const { RUN_TYPES } = require('./validate');
 // DB_PATH can point somewhere else, e.g. a throwaway file for testing.
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'runs.db');
 
-const db = new DatabaseSync(DB_PATH);
+// DB_READ_ONLY=1 (set by plan.js) opens the file read-only: SQLite refuses any write,
+// a missing file is an error instead of a new empty database, and the setup below is skipped.
+const READ_ONLY = process.env.DB_READ_ONLY === '1';
+
+const db = new DatabaseSync(DB_PATH, { readOnly: READ_ONLY });
 
 // CHECK constraints are a safety net; the API validates first and returns clear 400s.
 // The run_type list comes from validate.js so the two can't drift apart.
@@ -60,10 +64,12 @@ function migrateAddName() {
   db.exec('ALTER TABLE runs ADD COLUMN name TEXT');
 }
 
-// Order matters: migrateRunTypes copies the name column, so it must exist first
-migrateAddName();
-migrateRunTypes();
-createRunsTable('runs');
-db.exec('CREATE INDEX IF NOT EXISTS idx_runs_date ON runs (date)');
+if (!READ_ONLY) {
+  // Order matters: migrateRunTypes copies the name column, so it must exist first
+  migrateAddName();
+  migrateRunTypes();
+  createRunsTable('runs');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_runs_date ON runs (date)');
+}
 
 module.exports = db;
