@@ -76,3 +76,36 @@ Later (not part of this deadline)
 - Tell me how to run and test anything you build
 - Never commit secrets (.env) or the database file
 - When starting a test server, stop only that specific process (by its PID); never kill all node.exe processes
+
+## Artifact 3: training plan from my run history
+
+Goal: `node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4`
+generates a week-by-week plan based on my past runs.
+
+### Plain code, before the model (plan.js)
+- Reads runs from the database (same db module the server uses).
+- Computes my baseline from the last 4 weeks: avg km/week, runs/week, longest run, typical pace.
+- Checks the goal is realistic (weeks until race vs. how far baseline is from the goal).
+  If not, stops with a clear message and a suggested earliest race date. The model is not called.
+
+### What the model does (claude -p, headless)
+- Receives ONLY: baseline numbers, goal distance, race date, runs per week, today's date, and the rules below.
+- Returns ONLY JSON: weeks[] -> { week_start, days[] -> { date, run_type, distance_km, note } }.
+- run_type must come from the app's allowed list; "rest" days are simply left out.
+
+### Plain code, after the model
+- Parses the JSON; if invalid, shows the raw output and stops.
+- Validates the plan:
+  - week 1 total within ±15% of baseline avg km/week
+  - each week ≤ 110% of the previous week (cutback weeks may go down)
+  - long run ≤ 35% of that week's total
+  - final 2–3 weeks taper down; last run before race is short
+  - all dates between today and race day; runs per week ≤ the requested number
+- If any rule fails: send the exact errors back to the model and retry ONCE, then stop and show the errors.
+- Saves the plan to plans/<goal>-<race-date>.json and prints a table (week, days, total km, long run).
+- Logs each run (inputs, model output, validation result, retry yes/no) to logs/plan.jsonl.
+
+### Rules
+- The model never reads the database or .env; code passes it only the summary numbers.
+- Every safety limit is enforced by code, not trusted to the model.
+- README notes that these limits are general guidelines, not coaching or medical advice.

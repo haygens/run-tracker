@@ -292,3 +292,8 @@ All 9 planned steps were finished.
   - The missing-`.env` message shows the right path and waits for a key.
   - Ctrl+C then N shows "Run Tracker has stopped" and waits.
   - Skipped the optional test with another program on port 3000.
+
+## 2026-10-20
+- **Artifact 3: planned a training plan generator.** Nothing built yet; the plan is in CLAUDE.md.
+  - I'm adding a training plan generator. The model writes the plan from my baseline; plain code computes the baseline, checks whether the goal is realistic, and enforces the safety rules.
+  - It uses `claude -p`, so it runs on Claude Code access with no API cost.
