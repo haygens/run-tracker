@@ -1,12 +1,28 @@
-// Training plan generator, step 1 of 3: plain code before the model.
-// Reads my runs, works out a baseline from the last 4 full weeks, and checks
-// whether the goal is realistic. The model step (claude -p) is not built yet.
+// Training plan generator.
+// 1. Plain code: reads my runs, works out a baseline from the last 4 full weeks,
+//    and checks whether the goal is realistic. If not, it stops here.
+// 2. The model (claude -p, no tools) gets only the summary numbers and rules,
+//    and returns the plan as JSON.
+// 3. Plain code: checks every rule (plan-validate.js), retries once with the exact
+//    errors, then saves the plan and logs every attempt.
 //
-// Usage: node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4
+// Usage: node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4 [--dry-run]
 
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { parseArgs } = require('node:util');
-const { isValidDate } = require('./validate');
+const { isValidDate, RUN_TYPES } = require('./validate');
 const { addDays, mondayOf, todayLocal, round2 } = require('./summary');
+const {
+  validatePlan,
+  failureLines,
+  limits,
+  MAX_WEEKLY_GROWTH,
+  MAX_LONG_RUN_SHARE,
+  WEEK1_TOLERANCE,
+} = require('./plan-validate');
 
 const GOAL_KM = { '5k': 5, '10k': 10, half: 21.0975, marathon: 42.195 };
 
@@ -32,7 +48,6 @@ const GOAL_KM = { '5k': 5, '10k': 10, half: 21.0975, marathon: 42.195 };
 // so the answer is no, with no date.
 const PEAK_WEEK_KM = { '5k': 20, '10k': 30, half: 40, marathon: 55 };
 const TAPER_WEEKS = { '5k': 2, '10k': 2, half: 2, marathon: 3 };
-const MAX_WEEKLY_GROWTH = 0.10;
 const GROWTH_WEEKS_PER_CUTBACK = 3;
 
 const BASELINE_WEEKS = 4;
@@ -69,7 +84,7 @@ function daysBetween(fromYmd, toYmd) {
 
 // ---- Arguments ----
 
-const USAGE = 'Usage: node plan.js --goal <5k|10k|half|marathon> --race-date YYYY-MM-DD --runs-per-week <1-7>';
+const USAGE = 'Usage: node plan.js --goal <5k|10k|half|marathon> --race-date YYYY-MM-DD --runs-per-week <1-7> [--dry-run]';
 
 function fail(errors) {
   console.error('Cannot make a plan:');
@@ -78,7 +93,7 @@ function fail(errors) {
   process.exit(1);
 }
 
-// Returns { goal, raceDate, runsPerWeek }, or exits listing every problem at once
+// Returns { goal, raceDate, runsPerWeek, dryRun }, or exits listing every problem at once
 function readArgs(argv, today) {
   let values;
   try {
@@ -88,6 +103,7 @@ function readArgs(argv, today) {
         goal: { type: 'string' },
         'race-date': { type: 'string' },
         'runs-per-week': { type: 'string' },
+        'dry-run': { type: 'boolean' },
       },
       strict: true,
       allowPositionals: false,
@@ -122,7 +138,7 @@ function readArgs(argv, today) {
   }
 
   if (errors.length > 0) fail(errors);
-  return { goal, raceDate, runsPerWeek: Number(runsText) };
+  return { goal, raceDate, runsPerWeek: Number(runsText), dryRun: values['dry-run'] === true };
 }
 
 // ---- Baseline ----
@@ -205,12 +221,302 @@ function checkGoal(goal, raceDate, today, avgKmPerWeek) {
   };
 }
 
+// ---- Model step (claude -p) ----
+
+const CLAUDE_BIN = process.env.CLAUDE_BIN || 'claude';
+const MODEL_TIMEOUT_MS = 10 * 60 * 1000;
+const PLANS_DIR = path.join(__dirname, 'plans');
+const LOG_FILE = path.join(__dirname, 'logs', 'plan.jsonl');
+
+const SYSTEM_PROMPT =
+  'You write running training plans. You have no tools and no other data: use only the numbers in the message. Reply with JSON only.';
+
+// claude -p checks the reply against this shape and returns it as structured_output.
+// plan-validate.js still checks everything itself.
+const PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    weeks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          week_start: { type: 'string' },
+          days: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                date: { type: 'string' },
+                run_type: { type: 'string', enum: RUN_TYPES },
+                distance_km: { type: 'number' },
+                note: { type: 'string' },
+              },
+              required: ['date', 'run_type', 'distance_km', 'note'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['week_start', 'days'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['weeks'],
+  additionalProperties: false,
+};
+
+// -p: one reply and exit. --output-format json: a single JSON result.
+// --json-schema: the reply must match PLAN_SCHEMA. --tools "": no tools at all, so the
+// model can't read files (runs.db, .env) or run commands. --safe-mode: no CLAUDE.md,
+// hooks, skills or MCP servers. --no-session-persistence: nothing saved to resume.
+function claudeArgs() {
+  return [
+    '-p',
+    '--output-format', 'json',
+    '--json-schema', JSON.stringify(PLAN_SCHEMA),
+    '--tools', '',
+    '--safe-mode',
+    '--no-session-persistence',
+    '--system-prompt', SYSTEM_PROMPT,
+  ];
+}
+
+// The only data the model receives
+function modelInputs({ goal, raceDate, runsPerWeek, today, b }) {
+  return {
+    today,
+    race_date: raceDate,
+    goal,
+    goal_distance_km: GOAL_KM[goal],
+    runs_per_week: runsPerWeek,
+    baseline: {
+      avg_km_per_week: b.avgKmPerWeek,
+      avg_runs_per_week: b.avgRunsPerWeek,
+      longest_run_km: b.longest.distance_km,
+      typical_pace_per_km: formatDuration(b.typicalPaceSec),
+    },
+    allowed_run_types: RUN_TYPES,
+  };
+}
+
+function buildPrompt(inputs, ctx) {
+  const L = limits(ctx);
+  const first = L.weekStarts[0];
+  const last = L.weekStarts[L.weekStarts.length - 1];
+  return [
+    'Write a week-by-week running training plan for the goal below, starting from the runner\'s baseline.',
+    '',
+    'Inputs:',
+    JSON.stringify(inputs, null, 2),
+    '',
+    'Rules. Code checks the plan against every one of these, with these exact numbers:',
+    `1. One entry in "weeks" per week, in order. Each week_start is a Monday: the first is ${first} and the last is ${last} (${L.weekStarts.length} weeks). Every run's date is inside its week (week_start to the Sunday after it).`,
+    `2. Every date is after today (${ctx.today}) and before race day (${ctx.raceDate}). Race day itself is not part of the plan.`,
+    `3. At most ${ctx.runsPerWeek} runs per week. Rest days are left out.`,
+    `4. Week 1's total distance is between ${L.week1Min} and ${L.week1Max} km (baseline avg km/week ±${WEEK1_TOLERANCE * 100}%).`,
+    `5. Each week's total is at most ${100 + MAX_WEEKLY_GROWTH * 100}% of the previous week's total. Cutback weeks may go down.`,
+    `6. In every week, the longest run is at most ${MAX_LONG_RUN_SHARE * 100}% of that week's total.`,
+    `7. Taper: each of the final ${ctx.taperWeeks} weeks has a lower total than the week before it.`,
+    `8. The last run before race day is at most ${L.lastRunMaxKm} km.`,
+    `9. run_type is one of: ${RUN_TYPES.join(', ')}. distance_km is a number greater than 0. note is a short sentence about the run.`,
+    '',
+    'Use distances with at most one decimal place.',
+    'Return ONLY JSON in this shape, with no other text:',
+    '{"weeks":[{"week_start":"YYYY-MM-DD","days":[{"date":"YYYY-MM-DD","run_type":"easy","distance_km":5,"note":"Easy, conversational pace"}]}]}',
+  ].join('\n');
+}
+
+function buildRetryPrompt(prompt, plan, errors) {
+  return [
+    prompt,
+    '',
+    'Your previous plan failed these checks:',
+    ...errors.map((e) => `- ${e}`),
+    '',
+    'Your previous plan:',
+    JSON.stringify(plan),
+    '',
+    'Return a corrected, complete plan that passes every rule, as JSON only.',
+  ].join('\n');
+}
+
+// The model's process gets no database path, .env path or password
+function modelEnv() {
+  const env = { ...process.env };
+  for (const key of ['DB_PATH', 'DB_READ_ONLY', 'ENV_FILE', 'WRITE_PASSWORD', 'PLAN_TODAY']) delete env[key];
+  return env;
+}
+
+// Returns { plan, raw, error, durationMs, reportedCostUsd }; plan is null if the reply wasn't usable JSON
+function callModel(prompt) {
+  // An empty folder as the working directory, so there's nothing nearby to read either
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'run-tracker-plan-'));
+  const started = Date.now();
+  try {
+    const res = spawnSync(CLAUDE_BIN, claudeArgs(), {
+      cwd: dir,
+      input: prompt,
+      encoding: 'utf8',
+      timeout: MODEL_TIMEOUT_MS,
+      maxBuffer: 20 * 1024 * 1024,
+      env: modelEnv(),
+    });
+    const durationMs = Date.now() - started;
+    if (res.error) {
+      return { plan: null, raw: '', error: `Could not run ${CLAUDE_BIN}: ${res.error.message}`, durationMs };
+    }
+
+    let outer;
+    try {
+      outer = JSON.parse(res.stdout);
+    } catch {
+      const raw = `${res.stdout}${res.stderr ? `\n[stderr]\n${res.stderr}` : ''}`;
+      return { plan: null, raw, error: `claude exited with code ${res.status} and its output wasn't JSON`, durationMs };
+    }
+
+    const raw = typeof outer.result === 'string' ? outer.result : res.stdout;
+    const meta = { durationMs, reportedCostUsd: outer.total_cost_usd };
+    if (outer.is_error || res.status !== 0) {
+      return { plan: null, raw, error: `claude reported an error (${outer.subtype || `exit code ${res.status}`})`, ...meta };
+    }
+    if (outer.structured_output !== undefined) return { plan: outer.structured_output, raw, error: null, ...meta };
+    try {
+      return { plan: JSON.parse(outer.result), raw, error: null, ...meta };
+    } catch {
+      return { plan: null, raw, error: 'The model\'s reply is not valid JSON', ...meta };
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function logAttempt(entry) {
+  fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+  fs.appendFileSync(LOG_FILE, JSON.stringify({ time: new Date().toISOString(), ...entry }) + '\n');
+}
+
+function printValidation(validation) {
+  for (const r of validation.results) {
+    console.log(`  ${r.status.padEnd(4)}  ${r.rule}${r.detail ? `: ${r.detail}` : ''}`);
+    for (const e of r.errors) console.log(`          - ${e}`);
+  }
+}
+
+function printPlanTable(weeks) {
+  console.log('  Week  Dates                      Runs   Total km   Long run');
+  for (const w of weeks) {
+    console.log(
+      `  ${String(w.n).padStart(4)}  ${w.start} to ${w.end}  ${String(w.runs).padStart(4)}  ${km(w.total).padStart(9)}  ${km(w.longest).padStart(9)}`,
+    );
+  }
+  const total = round2(weeks.reduce((s, w) => s + w.total, 0));
+  console.log(`  Total: ${km(total)} km over ${weeks.length} weeks`);
+}
+
+function km(n) {
+  return formatDistance(n);
+}
+
+// Asks the model for a plan, checks it, retries once with the exact errors, then saves it.
+// Returns the exit code.
+function makePlan({ goal, raceDate, runsPerWeek, dryRun, today, b }) {
+  const ctx = {
+    today,
+    raceDate,
+    runsPerWeek,
+    baselineKmPerWeek: b.avgKmPerWeek,
+    taperWeeks: TAPER_WEEKS[goal],
+    goalKm: GOAL_KM[goal],
+  };
+  const inputs = modelInputs({ goal, raceDate, runsPerWeek, today, b });
+  const prompt = buildPrompt(inputs, ctx);
+
+  if (dryRun) {
+    console.log('Dry run: the model is not called. This is exactly what would be sent.');
+    console.log('');
+    console.log(`Command: ${CLAUDE_BIN} ${claudeArgs().map((a) => (a === '' || /[\s"{]/.test(a) ? JSON.stringify(a) : a)).join(' ')}`);
+    console.log('(the prompt below goes to its standard input; it runs in an empty temp folder)');
+    console.log('');
+    console.log('----- system prompt -----');
+    console.log(SYSTEM_PROMPT);
+    console.log('----- prompt -----');
+    console.log(prompt);
+    console.log('----- end -----');
+    return 0;
+  }
+
+  let attemptPrompt = prompt;
+  let errorsSent = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    console.log(attempt === 1 ? 'Asking the model for a plan (this can take a minute or two)...' : 'Retrying once with the exact errors...');
+    const reply = callModel(attemptPrompt);
+    const seconds = Math.round((reply.durationMs || 0) / 1000);
+
+    if (!reply.plan) {
+      logAttempt({ attempt, retry: attempt > 1, inputs, errors_sent: errorsSent, model_output: reply.raw, parsed: false, error: reply.error, validation: null, passed: false, duration_ms: reply.durationMs, reported_cost_usd: reply.reportedCostUsd });
+      console.log(`${reply.error}. Raw output:`);
+      console.log(reply.raw || '(empty)');
+      console.log(`Stopped. Logged to ${path.relative(__dirname, LOG_FILE)}.`);
+      return 1;
+    }
+
+    const validation = validatePlan(reply.plan, ctx);
+    logAttempt({
+      attempt,
+      retry: attempt > 1,
+      inputs,
+      errors_sent: errorsSent,
+      model_output: reply.raw,
+      parsed: true,
+      error: null,
+      validation: validation.results,
+      passed: validation.ok,
+      duration_ms: reply.durationMs,
+      reported_cost_usd: reply.reportedCostUsd,
+    });
+
+    console.log(`Reply received in ${seconds} s. Checking attempt ${attempt}:`);
+    printValidation(validation);
+    console.log('');
+
+    if (validation.ok) {
+      fs.mkdirSync(PLANS_DIR, { recursive: true });
+      const file = path.join(PLANS_DIR, `${goal}-${raceDate}.json`);
+      const saved = {
+        goal,
+        race_date: raceDate,
+        runs_per_week: runsPerWeek,
+        created: new Date().toISOString(),
+        attempts: attempt,
+        inputs,
+        weeks: reply.plan.weeks,
+      };
+      fs.writeFileSync(file, JSON.stringify(saved, null, 2) + '\n');
+      console.log(`All checks passed${attempt > 1 ? ' after one retry' : ''}. Plan saved to ${path.relative(__dirname, file)}`);
+      console.log('');
+      printPlanTable(validation.weeks);
+      console.log('');
+      console.log(`Logged to ${path.relative(__dirname, LOG_FILE)}.`);
+      return 0;
+    }
+
+    errorsSent = failureLines(validation);
+    if (attempt === 1) attemptPrompt = buildRetryPrompt(prompt, reply.plan, errorsSent);
+  }
+
+  console.log('Still failing after one retry. These checks failed:');
+  for (const e of errorsSent) console.log(`  - ${e}`);
+  console.log(`No plan was saved. Every attempt is in ${path.relative(__dirname, LOG_FILE)}.`);
+  return 1;
+}
+
 // ---- Main ----
 
 function main() {
   // PLAN_TODAY lets tests pretend it's another day (like DB_PATH for the database)
   const today = process.env.PLAN_TODAY || todayLocal();
-  const { goal, raceDate, runsPerWeek } = readArgs(process.argv.slice(2), today);
+  const { goal, raceDate, runsPerWeek, dryRun } = readArgs(process.argv.slice(2), today);
 
   // Same db module the server uses, opened read-only so this script can never change runs.db
   process.env.DB_READ_ONLY = '1';
@@ -291,7 +597,11 @@ function main() {
   }
   console.log('');
   console.log('These limits are general guidelines, not coaching or medical advice.');
-  console.log('(Model step not built yet)');
+
+  // The model is only called when the goal is realistic
+  if (!c.realistic) return;
+  console.log('');
+  process.exitCode = makePlan({ goal, raceDate, runsPerWeek, dryRun, today, b });
 }
 
 main();

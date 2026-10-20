@@ -115,6 +115,25 @@ If you move the project folder, delete the shortcut and make a new one.
 
 Everything on the page (summary, chart and table) updates straight away after each change.
 
+## Training plan (plan.js)
+
+Makes a week-by-week plan for a race from your last 4 full weeks of runs. It runs from PowerShell, not the page, and needs the `claude` command (Claude Code) to be installed and signed in.
+
+```powershell
+node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4
+```
+
+- `--goal` is `5k`, `10k`, `half` or `marathon`. `--runs-per-week` is 1 to 7.
+- Add `--dry-run` to see exactly what would be sent to the model, without calling it.
+- It prints your baseline and every run it counted, then checks whether the goal is realistic. If not, it stops and suggests an earliest race date. The model is not called.
+- If it is realistic, `claude -p` writes the plan with no tools, so it can't read `runs.db` or `.env`. It receives only your baseline numbers, the goal, the dates and the rules.
+- Code checks the plan against every rule and prints PASS or FAIL for each. If anything fails, the errors go back to the model once. If it still fails, nothing is saved.
+- A plan that passes is saved to `plans/<goal>-<race-date>.json`. Every attempt is logged to `logs/plan.jsonl`. Both folders are gitignored.
+- Rules checked: week 1 within ±15% of your baseline km/week, each week at most 10% more than the week before, the longest run at most 35% of its week, the final weeks (3 for a marathon, 2 otherwise) each lower than the week before, the last run before the race at most 6 km, all runs after today and before race day, and no more runs per week than you asked for.
+- `node test-plan-validate.js` tests the rule checks with hand-made plans, without the model.
+
+**These limits are general guidelines, not coaching or medical advice.** Talk to a coach or doctor about your own training, especially if you're new to running or have an injury.
+
 ## API
 
 GET endpoints are public. POST, PUT and DELETE need the password in an `X-Password` header. Without it they return **401**. Bad data returns **400** with a list of problems.
@@ -184,6 +203,8 @@ These environment variables let you run a test server without touching your real
 | `DB_PATH` | `runs.db` next to the code | Use a throwaway database |
 | `ENV_FILE` | `.env` next to the code | Use a test password file |
 | `NO_BROWSER` | not set | `start.bat` only: set to `1` to skip opening the browser |
+| `PLAN_TODAY` | your computer's date | `plan.js` only: pretend today is another date (`YYYY-MM-DD`) |
+| `CLAUDE_BIN` | `claude` | `plan.js` only: path to the `claude` command if it isn't on your PATH |
 
 ```powershell
 [IO.File]::WriteAllText("$env:TEMP\test.env", "WRITE_PASSWORD='test-only'`n", (New-Object Text.UTF8Encoding $false))
@@ -201,6 +222,9 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | `db.js` | Opens SQLite, creates the `runs` table, and updates older databases |
 | `validate.js` | Checks run data and builds the 400 error messages |
 | `summary.js` | Totals, personal bests, streak and weekly numbers |
+| `plan.js` | Training plan: baseline, realism check, `claude -p` call, retry, save and log |
+| `plan-validate.js` | Checks a plan against every rule (no model) |
+| `test-plan-validate.js` | Tests `plan-validate.js` with hand-made plans |
 | `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog) |
 | `start.bat` | Double-click launcher: checks setup, starts the server, opens the browser |
 | `CLAUDE.md` | Project spec |

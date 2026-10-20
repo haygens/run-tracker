@@ -326,3 +326,34 @@ All 9 planned steps were finished.
     - A race date that's too soon, today being a Sunday, an even number of paces (median = average of the middle two), and a copy of `runs-backup.db`.
     - Confirmed that `runs.db`, the database copies and the old-format copy are byte-for-byte unchanged afterwards, that a write in read-only mode is refused, and that a missing file isn't created.
   - **Noticed:** the real `runs.db` currently has 0 runs (last changed Oct 19); `runs-backup.db` has 7. So on real data, `plan.js` says "Realistic: no, no baseline". Nothing was changed in either file.
+- **Hand test of `plan.js` part 1.** Everything matched my hand calculations:
+  - On a temp copy of `runs-backup.db` (`DB_PATH` set): 7 runs, 14.45 km/week, 1.75 runs/week, longest run 21.1 km, median pace 5:00, 15 growth + 4 cutback + 3 taper = 22 weeks needed, earliest race date Sun 2027-03-28.
+  - On my real (empty) `runs.db`: it said "Realistic: no" and stopped there.
+- **Artifact 3, parts 2 and 3: the model step and the checks after it.**
+  - **When the model is called:** only when the goal check says "Realistic: yes". Otherwise `plan.js` stops as before.
+  - **How it's called:** `claude -p --output-format json --json-schema <plan shape> --tools "" --safe-mode --no-session-persistence --system-prompt <one line>`, with the prompt sent on standard input.
+    - `--tools ""` turns off every tool, so the model can't read files (`runs.db`, `.env`) or run commands.
+    - `--safe-mode` skips CLAUDE.md, hooks, skills and MCP servers.
+    - It runs in an empty temp folder, and `DB_PATH`, `ENV_FILE`, `DB_READ_ONLY`, `PLAN_TODAY` and `WRITE_PASSWORD` are removed from its environment.
+    - The plan comes back as `structured_output` in the JSON reply. If that's missing, the `result` text is parsed. If neither is valid JSON, the raw output is shown and it stops, with no retry.
+    - I found the right flags with `claude --help` and one tiny test call with no run data.
+  - **What the model receives** (`--dry-run` prints it exactly): today, race date, goal and its distance, runs per week, baseline (avg km/week, avg runs/week, longest run km, typical pace), the allowed run types, and the rules with the exact numbers worked out. No run names, run dates or file paths.
+  - **New `plan-validate.js`:** checks every rule in plain code and prints PASS or FAIL with the numbers. Where the spec didn't pin a rule down, I chose:
+    - **Weeks:** start on Mondays, from the Monday after today to the week holding the day before the race, with no gaps. Each run is inside its own week.
+    - **Dates:** after today and before race day. The race itself is not in the plan.
+    - **Long run:** the longest run of any type in the week, at most 35% of that week's total.
+    - **Taper:** each of the last 3 weeks (marathon) or 2 weeks (other goals) is lower than the week before it, matching the taper weeks in the goal check.
+    - **"Last run before race is short":** at most 6 km (5 km for a 5k).
+    - **Format errors first:** wrong run type, bad date, distance ≤ 0, missing note. If there are any, the number rules show SKIP. Why: the totals can't be trusted until the shape is right.
+  - **Retry:** on any FAIL, the original prompt, the failed plan and the exact FAIL lines go back to the model once. If it still fails, it stops, lists what still fails, and saves nothing.
+  - **Saving:** a plan that passes goes to `plans/<goal>-<race-date>.json` (goal, inputs, attempts, weeks), overwriting any earlier one for the same goal and date. A table of week, dates, runs, total km and long run is printed.
+  - **Log:** every model attempt adds one line to `logs/plan.jsonl`: time, attempt, retry yes/no, inputs, errors sent, raw model output, parsed yes/no, each rule's result, passed yes/no, time taken, and the cost `claude` reports.
+  - `plans/` and `logs/` added to `.gitignore`.
+  - README: a new "Training plan" section with the "general guidelines, not coaching or medical advice" note, plus the new test variables and files.
+  - **Testing:**
+    - **New `test-plan-validate.js`** (no model): a plan that follows every rule passes. Too big a jump, a long run that's too long, no taper, a run on race day, a run after race day, wrong run types (`rest`, `jog`), week 1 too big, 5 runs in a week, a missing week, a last run that's too long, a non-object, and a zero distance with a missing note each fail the right rule. All 13 cases behave as expected.
+    - **Found while writing the tests:** after a cutback week, the next week can only be 10% above the cutback week, not the old peak, because the spec compares each week with the one before it. So after a deep cutback, the build takes longer than the goal check assumes. A small cutback (about 10%) keeps them in line. The model's plan used cutbacks of about 13% and still passed with 27 weeks.
+    - **Retry and error paths**, using a fake `claude` that returns hand-made replies (fail then pass, fail twice, not JSON): the errors were sent back, the right attempts were logged, a plan was saved only after passing, and nothing was saved otherwise. The real log and plan were restored afterwards.
+    - **One real model run** on a temp copy of `runs-backup.db` (marathon, 2027-05-02, 4 runs a week): the reply took 106 s and passed all 9 checks on the first attempt, so there was no retry. 27 weeks, 944.3 km in total, week 1 = 15 km, biggest increase +10%, highest long-run share 34.9%, taper 64 → 50 → 40 → 16.5 km, last run 3 km on 2027-05-01, peak long run 22.3 km. Saved and logged.
+    - `runs.db` and the temp copy were unchanged afterwards. On the real (empty) `runs.db` it still stops at "Realistic: no" without calling the model.
+  - **Cost:** `claude` is signed in with my claude.ai Pro account, so this uses Pro usage, not the API. The reported cost of about $0.34 in the log is a list-price figure, not a charge.
