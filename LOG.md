@@ -375,3 +375,8 @@ All 9 planned steps were finished.
     - a higher long-run share for half and marathon goals (many plans allow 40–50%)
     - a minimum peak long run per goal
     - raising the realism check's marathon peak
+- **Planned: the training plan on the web page.** Nothing built yet; the plan is in CLAUDE.md under "Training plan on the web page".
+  - **Why:** so I can use the plan from the app I already use, instead of switching to PowerShell to run `plan.js`.
+  - **Server:** `POST /api/plan/check` (baseline and realism, no model, public), `POST /api/plan/generate` (password required, only when realistic, one at a time, 5-minute timeout) and `GET /api/plan/latest`.
+  - **Page:** a "Training plan" section below the runs table with Check and Generate buttons, the plan table with clickable weeks, and the rule results.
+  - The logic from `plan.js` and `plan-validate.js` will move into a shared module so the command line and the server use the same code.

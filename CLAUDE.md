@@ -109,3 +109,21 @@ generates a week-by-week plan based on my past runs.
 - The model never reads the database or .env; code passes it only the summary numbers.
 - Every safety limit is enforced by code, not trusted to the model.
 - README notes that these limits are general guidelines, not coaching or medical advice.
+
+## Training plan on the web page
+
+Server:
+- POST /api/plan/check: body {goal, race_date, runs_per_week}. Returns baseline + realism result. Plain code only; never calls the model. Public.
+- POST /api/plan/generate: same body. Requires the password (same X-Password check). Only runs if realistic. Calls claude -p exactly as plan.js does, validates, retries once, saves, logs. Returns the plan, the 9 PASS/FAIL results with numbers, and whether a retry happened.
+- Only one generate can run at a time; a second request gets 409 with a clear message.
+- Generate times out after 5 minutes with a clear error.
+- GET /api/plan/latest: returns the most recently saved plan, or none.
+- Reuse plan.js and plan-validate.js logic through a shared module; don't duplicate it.
+
+Page:
+- New "Training plan" section below the runs table: Goal (5k/10k/half/marathon), Race date, Runs per week (1–7).
+- "Check" button shows baseline and Realistic yes/no with the reason. Free (no model).
+- "Generate plan" button appears only when realistic. While running: button disabled, message "Generating plan… this takes about 2 minutes." Uses the same password dialog as add/edit/delete.
+- Result: a table (week, dates, runs, total km, long run) plus the rule results. Clicking a week shows its days.
+- On page load, show the latest saved plan if there is one.
+- Plain HTML/CSS/JS, matching the existing style.
