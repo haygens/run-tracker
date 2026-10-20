@@ -357,3 +357,21 @@ All 9 planned steps were finished.
     - **One real model run** on a temp copy of `runs-backup.db` (marathon, 2027-05-02, 4 runs a week): the reply took 106 s and passed all 9 checks on the first attempt, so there was no retry. 27 weeks, 944.3 km in total, week 1 = 15 km, biggest increase +10%, highest long-run share 34.9%, taper 64 → 50 → 40 → 16.5 km, last run 3 km on 2027-05-01, peak long run 22.3 km. Saved and logged.
     - `runs.db` and the temp copy were unchanged afterwards. On the real (empty) `runs.db` it still stops at "Realistic: no" without calling the model.
   - **Cost:** `claude` is signed in with my claude.ai Pro account, so this uses Pro usage, not the API. The reported cost of about $0.34 in the log is a list-price figure, not a charge.
+- **Hand test of `plan.js` parts 2 and 3**, on the temp copy of `runs-backup.db` (marathon, 2027-05-02, 4 runs a week):
+  - **Dry run:** the prompt showed only the baseline numbers, the goal, the dates, the run types and the rules. No run names, file paths or password.
+  - **Real run:** passed all 9 rules on the first attempt, with no retry.
+  - **Hand-checked the table:**
+    - week 1 = 15 km
+    - no week over +10%
+    - cutbacks at weeks 5, 9, 13 and 17
+    - long run ≤ 35% every week (19 of 55 km at the peak)
+    - taper 55 → 44 → 33 → 15 km
+- **Observation (possible future change, rules not changed now): the long run tops out at 19 km.**
+  - I've already run 21.1 km, and marathon plans usually build to a long run of about 30 km.
+  - The limit comes from the code's rules, not the model. The 35% long-run cap means a 30 km long run needs a week of about 86 km.
+  - The 55 km peak itself isn't a plan rule. It's only used in the realism check, and the model isn't told it. This run chose a 55 km peak; an earlier run peaked at 64 km with a 22.3 km long run.
+  - So the rules are safe but too conservative for a marathon.
+  - Possible changes later:
+    - a higher long-run share for half and marathon goals (many plans allow 40–50%)
+    - a minimum peak long run per goal
+    - raising the realism check's marathon peak
