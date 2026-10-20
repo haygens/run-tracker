@@ -146,6 +146,79 @@
       </table>
       <p id="runs-empty" hidden>No runs yet. Add your first one above.</p>
     </section>
+
+    <section id="plan">
+      <h2>Training plan <span class="stat-note">from your last 4 full weeks of runs</span></h2>
+      <form id="plan-form" novalidate>
+        <label>
+          Goal
+          <select name="goal">
+            <option value="5k">5K</option>
+            <option value="10k">10K</option>
+            <option value="half">Half marathon</option>
+            <option value="marathon" selected>Marathon</option>
+          </select>
+        </label>
+        <label>
+          Race date
+          <input type="date" name="race_date" required>
+        </label>
+        <label>
+          Runs per week
+          <input type="number" name="runs_per_week" min="1" max="7" step="1" value="4" required>
+        </label>
+        <div class="form-actions">
+          <span aria-hidden="true">&nbsp;</span>
+          <div class="buttons">
+            <button type="submit" id="plan-check-button">Check</button>
+            <button type="button" id="plan-generate-button" hidden>Generate plan</button>
+          </div>
+        </div>
+      </form>
+      <div id="plan-message" role="status" hidden></div>
+
+      <div id="plan-check-result" hidden>
+        <dl class="pbs plan-baseline">
+          <dt>Baseline weeks</dt><dd id="check-window"></dd>
+          <dt>Avg per week</dt><dd id="check-avg"></dd>
+          <dt>Longest run</dt><dd id="check-longest"></dd>
+          <dt>Typical pace</dt><dd id="check-pace"></dd>
+          <dt>Weeks needed</dt><dd id="check-weeks"></dd>
+        </dl>
+        <p class="plan-verdict"><strong id="check-realistic"></strong> <span id="check-reason"></span></p>
+        <p class="stat-note" id="check-earliest"></p>
+      </div>
+
+      <div id="plan-result" hidden>
+        <h3 id="plan-title"></h3>
+        <p class="stat-note" id="plan-meta"></p>
+        <table id="plan-table">
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Dates</th>
+              <th class="num">Runs</th>
+              <th class="num">Total km</th>
+              <th class="num">Long run (km)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3">Total</th>
+              <th class="num" id="plan-total"></th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+        <p class="stat-note">Click a week to see its runs.</p>
+
+        <h3 class="plan-checks-heading">Rule results</h3>
+        <ul id="plan-checks"></ul>
+        <p id="plan-checks-missing" class="stat-note" hidden>Rule results weren't saved for this plan.</p>
+        <p class="stat-note">These limits are general guidelines, not coaching or medical advice.</p>
+      </div>
+    </section>
   </main>
 
   <dialog id="password-dialog" aria-labelledby="password-title">

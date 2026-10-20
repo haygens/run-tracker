@@ -404,3 +404,35 @@ All 9 planned steps were finished.
     - **Log:** all 9 attempts logged, with timeouts and retries marked.
     - `plan.js` with the fake `claude`: fail then pass saved after one retry, not JSON stopped with the raw output. `node test-plan-validate.js`: all 13 cases still pass.
     - `runs.db`, `runs-backup.db`, `logs/plan.jsonl` and the saved plan in `plans/` had the same hashes afterwards.
+- **Hand test of the training plan API** from PowerShell, against the temp test database. Everything passed:
+  - **Check, marathon on 2026-12-06:** realistic false, 22 weeks needed and 6 available, earliest race date 2027-03-28. Same as `plan.js`.
+  - **Check, 10k on 2027-02-07:** realistic true. 8 growth + 2 cutback + 2 taper = 12 weeks needed, 15 available, earliest 2027-01-17.
+  - **Generate without the password:** 401.
+  - **Latest:** returned the marathon-2027-05-02 plan with `"checks": null`, because `plan.js` saved it before the web version started saving rule results.
+- **Training plan on the web page, page part.** A new "Training plan" section below the runs table. No server changes.
+  - **Form:** goal (5K, 10K, half marathon, marathon), race date, runs per week (1–7, default 4). It uses the same styles as the add-run form.
+  - **Check:** shows the baseline (the 4 weeks, avg km and runs per week, longest run, typical pace), the weeks needed and how they add up, "Realistic: yes/no" with the reason, and the earliest or suggested race date. It's free: no model. Bad input shows the server's messages as a list.
+  - **Generate plan:** only appears when Check says realistic. Changing any input hides the old check result and the button until Check is pressed again. Why: so a plan can't be generated for inputs that weren't checked.
+    - It uses the same password dialog and `sessionStorage` memory as add/edit/delete. `writeRequest` got an optional step that runs once the password is known. Why: so "Generating plan… this takes about 2 minutes." shows after the dialog closes, not hidden behind it.
+    - While it runs, the whole plan form is disabled, not just the button. Why: so the inputs can't change under a running request.
+    - Errors from the server are shown as they come: 409 (one already running), 504 (timeout), 502 with the failing rules, and not-JSON with a "Show the raw model output" box.
+  - **Result:** a table of week, dates, runs, total km and long run, with a total. Clicking a week (or Enter on it) shows its runs underneath: day, type, distance, note. The 9 rule results are listed below as PASS/FAIL/SKIP with their numbers, then the "general guidelines, not coaching or medical advice" note.
+  - **On page load:** the latest saved plan is shown, and the form is filled in with its goal, date and runs per week. If the plan has no rule results (saved by `plan.js` before the web version), the page says "Rule results weren't saved for this plan." instead of an error or empty space.
+  - **Found while testing:** after a failed generate, the earlier plan stayed on screen titled "New plan" with all PASS, right under the error. It could look like the failed plan passed. It's now relabelled "Latest saved plan".
+  - **Testing:** headless Edge driven over its debugging port, against a test server with a fake `claude`, a temp copy of `runs-backup.db` and a temp output folder. The server and Edge were each stopped by their own PID. No real model run. Everything passed:
+    - **Empty:** no plan, no check, no Generate button, no message.
+    - **Check, bad input** (blank date, 9 runs): an error with both reasons.
+    - **Check, marathon 2026-12-06:** "Realistic: no", 22 needed (15 + 4 + 3) and 6 available, suggests Sun 28 Mar 2027, no Generate button.
+    - **Check, 10k 2027-02-07:** "Realistic: yes", 12 needed (8 + 2 + 2) and 15 available, earliest Sun 17 Jan 2027, Generate shown. Changing the date hid both.
+    - **Password:** the dialog opened with no "Generating" message behind it. Cancel gave "No plan was generated…" and the form was enabled again. A wrong password was asked again; the right one went through and was remembered for the tab.
+    - **Running:** the "Generating plan…" message showed, the buttons and inputs were disabled, and a second request at the same time got 409.
+    - **Success:** "Plan saved. All 9 rules passed on the first try.", 27 weeks, week 1 = 14.5 km, 9 PASS. Clicking week 1 showed its 4 runs, and clicking again hid them; Enter worked too.
+    - **409 on the page:** a clear message, and the button was enabled again.
+    - **Fail then pass:** "…after one retry", and the plan line says "needed one retry".
+    - **Fail twice:** an error listing the failing rule, and the earlier plan stayed, relabelled.
+    - **Not JSON:** an error with the raw output box.
+    - **Timeout** (6 s for the test): the 504 message, and the form was enabled again.
+    - **Reload:** the newest plan with its 9 results, and the form filled in.
+    - **A copy of my real `plan.js` plan** (no `checks`): the table plus "Rule results weren't saved for this plan."
+    - No console errors. I looked at screenshots of each state.
+    - The API tests and `node test-plan-validate.js` still pass. `runs.db`, `runs-backup.db`, `logs/plan.jsonl` and the saved plan in `plans/` had the same hashes afterwards.

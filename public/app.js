@@ -492,7 +492,7 @@ function forgetPassword() {
 
 document.getElementById('forget-password').addEventListener('click', () => {
   forgetPassword();
-  showSuccess('Password forgotten. You will be asked again next time you add, edit or delete.');
+  showSuccess('Password forgotten. You will be asked again next time you add, edit or delete, or generate a plan.');
 });
 
 // Shows the password dialog. Resolves with the password, or null if cancelled.
@@ -530,19 +530,21 @@ function askPassword(text, isError = false) {
   });
 }
 
-// fetch() for add/edit/delete: sends the password, asks for it first if needed,
-// and asks again if the server says it's wrong. Resolves with the response,
-// or null if the password dialog was cancelled.
-async function writeRequest(url, method, body) {
+// fetch() for add/edit/delete and generating a plan: sends the password, asks for it
+// first if needed, and asks again if the server says it's wrong. Resolves with the
+// response, or null if the password dialog was cancelled.
+// beforeSend (optional) runs once the password is known, right before each request.
+async function writeRequest(url, method, body, beforeSend = () => {}) {
   let password = getPassword();
   if (!password) {
-    password = await askPassword('Enter the Run Tracker password to add, edit or delete runs.');
+    password = await askPassword('Enter the Run Tracker password to add, edit or delete runs, or to generate a plan.');
     if (password === null) return null;
   }
 
   for (;;) {
     const headers = { 'X-Password': encodeURIComponent(password) };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
+    beforeSend();
     const res = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
 
     if (res.status !== 401) {
@@ -654,6 +656,286 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
+// ---- Training plan ----
+// Check is free: plain code on the server, no model. Generate calls the model, needs
+// the password and takes a minute or two; the server runs one at a time.
+
+const planForm = document.getElementById('plan-form');
+const planMessage = document.getElementById('plan-message');
+const planGenerateButton = document.getElementById('plan-generate-button');
+const planCheckResult = document.getElementById('plan-check-result');
+const planResult = document.getElementById('plan-result');
+const planTableBody = document.querySelector('#plan-table tbody');
+
+const GOAL_NAMES = { '5k': '5K', '10k': '10K', half: 'Half marathon', marathon: 'Marathon' };
+const GENERATING_TEXT = 'Generating plan… this takes about 2 minutes.';
+let generatingPlan = false;
+let shownPlan = null; // the plan in the table, so a failed generate can relabel it
+
+// kind: 'success', 'error' or 'info'. raw (optional) is shown in a collapsed box.
+function showPlanMessage(kind, title, details = [], raw = '') {
+  planMessage.className = kind;
+  planMessage.textContent = title;
+  if (details.length) {
+    const list = document.createElement('ul');
+    for (const detail of details) {
+      const item = document.createElement('li');
+      item.textContent = detail;
+      list.appendChild(item);
+    }
+    planMessage.appendChild(list);
+  }
+  if (raw) {
+    const box = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Show the raw model output';
+    const pre = document.createElement('pre');
+    pre.textContent = raw;
+    box.append(summary, pre);
+    planMessage.appendChild(box);
+  }
+  planMessage.hidden = false;
+}
+
+// "2027-05-02" -> "Sun 2 May 2027"
+function longDate(ymd) {
+  const day = new Date(ymd + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+  return `${day} ${shortDate(ymd)} ${ymd.slice(0, 4)}`;
+}
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+// The form as the body the API expects; the server checks every field
+function planRequest() {
+  const runs = planForm.elements.runs_per_week.value;
+  return {
+    goal: planForm.elements.goal.value,
+    race_date: planForm.elements.race_date.value,
+    runs_per_week: runs === '' ? null : Number(runs),
+  };
+}
+
+// While generating, the whole form is disabled so the inputs can't drift from the request
+function setGenerating(on) {
+  generatingPlan = on;
+  for (const el of planForm.elements) el.disabled = on;
+}
+
+function renderCheck(c) {
+  const b = c.baseline;
+  setText('check-window', `${b.window_start} to ${b.window_end} · ${b.runs} ${b.runs === 1 ? 'run' : 'runs'}, ${formatDistance(b.total_km)} km`);
+  setText('check-avg', `${formatDistance(b.avg_km_per_week)} km · ${formatDistance(b.avg_runs_per_week)} runs`);
+  setText('check-longest', b.longest_run_km === null ? 'None' : `${formatDistance(b.longest_run_km)} km`);
+  setText('check-pace', b.typical_pace === null ? 'None' : `${b.typical_pace} /km`);
+  setText(
+    'check-weeks',
+    c.weeks_needed === null
+      ? `No baseline yet · ${c.weeks_available} available`
+      : `${c.weeks_needed} (${c.growth_weeks} growth + ${c.cutback_weeks} cutback + ${c.taper_weeks} taper) · ${c.weeks_available} available`,
+  );
+
+  const verdict = document.getElementById('check-realistic');
+  verdict.textContent = `Realistic: ${c.realistic ? 'yes' : 'no'}.`;
+  verdict.className = c.realistic ? 'yes' : 'no';
+  setText('check-reason', capitalize(c.reason));
+
+  let earliest;
+  if (c.realistic) earliest = `Earliest race date by this rule: ${longDate(c.earliest_race_date)}`;
+  else if (c.earliest_race_date) earliest = `Suggested earliest race date: ${longDate(c.earliest_race_date)}`;
+  else earliest = 'Suggested earliest race date: none yet. Log a few weeks of running, then try again.';
+  setText('check-earliest', earliest);
+
+  planCheckResult.hidden = false;
+  planGenerateButton.hidden = !c.realistic;
+}
+
+function cell(text, className) {
+  const td = document.createElement('td');
+  td.textContent = text;
+  if (className) td.className = className;
+  return td;
+}
+
+// A week's runs, shown under its row when clicked
+function daysRow(week) {
+  const row = document.createElement('tr');
+  row.className = 'plan-days';
+  row.hidden = true;
+  const td = document.createElement('td');
+  td.colSpan = 5;
+  const table = document.createElement('table');
+  const days = [...week.days].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  for (const day of days) {
+    const tr = document.createElement('tr');
+    tr.append(
+      cell(longDate(day.date).slice(0, -5)), // "Tue 27 Oct"
+      cell(capitalize(day.run_type)),
+      cell(`${formatDistance(day.distance_km)} km`, 'num'),
+      cell(day.note || ''),
+    );
+    table.appendChild(tr);
+  }
+  td.appendChild(table);
+  row.appendChild(td);
+  return row;
+}
+
+function renderChecks(checks) {
+  const list = document.getElementById('plan-checks');
+  list.replaceChildren();
+  // Plans saved by plan.js before the web version have no rule results
+  document.getElementById('plan-checks-missing').hidden = checks !== null;
+  list.hidden = checks === null;
+  if (checks === null) return;
+
+  for (const check of checks) {
+    const item = document.createElement('li');
+    const status = document.createElement('span');
+    status.className = `check-status ${check.status.toLowerCase()}`;
+    status.textContent = check.status;
+    const rule = document.createElement('strong');
+    rule.textContent = check.rule;
+    item.append(status, rule);
+    if (check.detail) item.append(`: ${check.detail}`);
+    if (check.errors.length) {
+      const errors = document.createElement('ul');
+      for (const e of check.errors) {
+        const li = document.createElement('li');
+        li.textContent = e;
+        errors.appendChild(li);
+      }
+      item.appendChild(errors);
+    }
+    list.appendChild(item);
+  }
+}
+
+// data: { plan, rows, checks, retried? } from /api/plan/generate or /api/plan/latest
+function renderPlan(data, isLatest) {
+  shownPlan = data;
+  const { plan, rows } = data;
+  const retried = data.retried ?? plan.attempts > 1;
+  setText('plan-title', `${isLatest ? 'Latest saved plan' : 'New plan'}: ${GOAL_NAMES[plan.goal] || plan.goal}, race on ${longDate(plan.race_date)}`);
+  const saved = new Date(plan.created).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+  setText('plan-meta', `${plan.runs_per_week} runs per week · ${rows.length} weeks · saved ${saved} · ${retried ? 'needed one retry' : 'no retry'}`);
+
+  planTableBody.replaceChildren();
+  rows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'plan-week';
+    tr.tabIndex = 0;
+    tr.setAttribute('aria-expanded', 'false');
+    tr.append(
+      cell(row.n),
+      cell(`${row.start} to ${row.end}`),
+      cell(row.runs, 'num'),
+      cell(formatDistance(row.total), 'num'),
+      cell(formatDistance(row.longest), 'num'),
+    );
+    planTableBody.append(tr, daysRow(plan.weeks[i]));
+  });
+  setText('plan-total', formatDistance(rows.reduce((sum, r) => sum + r.total, 0)));
+
+  renderChecks(data.checks ?? null);
+  planResult.hidden = false;
+}
+
+function toggleWeek(row) {
+  const days = row.nextElementSibling;
+  days.hidden = !days.hidden;
+  row.setAttribute('aria-expanded', String(!days.hidden));
+}
+
+planTableBody.addEventListener('click', (event) => {
+  const row = event.target.closest('tr.plan-week');
+  if (row) toggleWeek(row);
+});
+
+planTableBody.addEventListener('keydown', (event) => {
+  const row = event.target.closest('tr.plan-week');
+  if (row && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    toggleWeek(row);
+  }
+});
+
+// A changed input makes the last check out of date: hide it until Check is pressed again
+planForm.addEventListener('input', () => {
+  if (generatingPlan) return;
+  planCheckResult.hidden = true;
+  planGenerateButton.hidden = true;
+});
+
+planForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (generatingPlan) return;
+  planMessage.hidden = true;
+  planCheckResult.hidden = true;
+  planGenerateButton.hidden = true;
+  try {
+    const res = await fetch('/api/plan/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(planRequest()),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showPlanMessage('error', body.error || `Could not check the goal (server returned ${res.status})`, body.details || []);
+      return;
+    }
+    renderCheck(body);
+  } catch (err) {
+    showPlanMessage('error', `Could not reach the server: ${err.message}`);
+  }
+});
+
+planGenerateButton.addEventListener('click', async () => {
+  if (generatingPlan) return;
+  const request = planRequest();
+  planMessage.hidden = true;
+  setGenerating(true);
+  try {
+    // The "Generating" message appears once the password is known, not behind the dialog
+    const res = await writeRequest('/api/plan/generate', 'POST', request, () => showPlanMessage('info', GENERATING_TEXT));
+    if (res === null) {
+      showPlanMessage('error', 'No plan was generated: the password is needed to generate a plan.');
+      return;
+    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // The plan still on screen is the last saved one, not the one that just failed
+      if (shownPlan) renderPlan(shownPlan, true);
+      showPlanMessage('error', body.error || `Could not generate a plan (server returned ${res.status})`, body.failures || body.details || [], body.raw || '');
+      return;
+    }
+    renderPlan(body, false);
+    showPlanMessage('success', `Plan saved. All ${body.checks.length} rules passed${body.retried ? ' after one retry' : ' on the first try'}.`);
+  } catch (err) {
+    showPlanMessage('error', `Could not reach the server: ${err.message}`);
+  } finally {
+    setGenerating(false);
+  }
+});
+
+// On page load: show the latest saved plan, and fill the form with its goal
+async function loadLatestPlan() {
+  try {
+    const res = await fetch('/api/plan/latest');
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const body = await res.json();
+    if (!body.plan) return;
+    renderPlan(body, true);
+    planForm.elements.goal.value = body.plan.goal;
+    planForm.elements.race_date.value = body.plan.race_date;
+    planForm.elements.runs_per_week.value = body.plan.runs_per_week;
+  } catch (err) {
+    showPlanMessage('error', `Could not load the latest plan: ${err.message}`);
+  }
+}
+
 form.elements.date.value = todayLocal();
 passwordStatus.hidden = !getPassword();
 refresh();
+loadLatestPlan();

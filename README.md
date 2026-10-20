@@ -117,7 +117,15 @@ Everything on the page (summary, chart and table) updates straight away after ea
 
 ## Training plan (plan.js)
 
-Makes a week-by-week plan for a race from your last 4 full weeks of runs. It runs from PowerShell or through the server's `/api/plan/...` endpoints (see API), and needs the `claude` command (Claude Code) to be installed and signed in.
+Makes a week-by-week plan for a race from your last 4 full weeks of runs. Use it from the **Training plan** section at the bottom of the page, or from PowerShell. Either way it needs the `claude` command (Claude Code) to be installed and signed in.
+
+**On the page:**
+1. Pick a goal, a race date and runs per week, then press **Check**. Check is free (no model). It shows your baseline and whether the goal is realistic, and why.
+2. If it is realistic, a **Generate plan** button appears. It asks for the password (the same dialog as add/edit/delete) and takes about 2 minutes.
+3. The plan shows as a table of weeks: click a week to see its runs. The 9 rule results are listed under the table.
+4. When the page opens, it shows the latest saved plan. Plans made by `plan.js` before the page could make plans say "Rule results weren't saved for this plan".
+
+**From PowerShell:**
 
 ```powershell
 node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4
@@ -239,7 +247,7 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | `plan.js` | Training plan from PowerShell: reads the arguments and prints the results |
 | `plan-validate.js` | Checks a plan against every rule (no model) |
 | `test-plan-validate.js` | Tests `plan-validate.js` with hand-made plans |
-| `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog) |
+| `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog, training plan) |
 | `start.bat` | Double-click launcher: checks setup, starts the server, opens the browser |
 | `CLAUDE.md` | Project spec |
 | `LOG.md` | Build log: what changed and why |
