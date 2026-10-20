@@ -436,3 +436,15 @@ All 9 planned steps were finished.
     - **A copy of my real `plan.js` plan** (no `checks`): the table plus "Rule results weren't saved for this plan."
     - No console errors. I looked at screenshots of each state.
     - The API tests and `node test-plan-validate.js` still pass. `runs.db`, `runs-backup.db`, `logs/plan.jsonl` and the saved plan in `plans/` had the same hashes afterwards.
+- **Hand test of the Training plan section** in the browser, against the temp test database. Everything passed:
+  - **On load:** showed the saved marathon plan with "Rule results weren't saved for this plan". Weeks open and close.
+  - **Check, marathon 2026-12-06:** Realistic no, 22 needed and 6 available, suggests Sun 28 Mar 2027, no Generate button.
+  - **Check, 10k 2027-02-07:** Realistic yes, 12 needed and 15 available, Generate button shown. Changing the date hid the result and the button.
+  - **Real generate, 10k, 3 runs a week:** no retry, 15 weeks, all 9 rules PASS. I checked it by hand:
+    - week 1 = 15 km
+    - no week over +10% (cutbacks at weeks 4, 8 and 12)
+    - long run ≤ 35% every week
+    - taper 21.9 → 18 → 12 km
+  - **After F5:** shown as "Latest saved plan" with its rule results.
+  - **Forget password, then Generate, then Cancel:** nothing was generated and the plan didn't change.
+  - **Note:** during the first Cancel test I typed my password by accident, which ran the real generate early. It still counted as the real test.
