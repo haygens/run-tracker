@@ -75,6 +75,17 @@ function formatErrors(plan) {
   return errors;
 }
 
+// Totals per week, in the order the model sent them (also the rows of the plan table).
+// Only call this on weeks that passed the format check.
+function weekRows(planWeeks) {
+  return planWeeks.map((wk, i) => {
+    const total = round2(wk.days.reduce((s, d) => s + d.distance_km, 0));
+    const longest = wk.days.reduce((m, d) => Math.max(m, d.distance_km), 0);
+    const dates = wk.days.map((d) => d.date).sort();
+    return { n: i + 1, start: wk.week_start, end: addDays(wk.week_start, 6), runs: wk.days.length, total, longest, dates };
+  });
+}
+
 // Returns { ok, results: [{ rule, status: 'PASS'|'FAIL'|'SKIP', detail, errors[] }], weeks }
 // ctx: { today, raceDate, runsPerWeek, baselineKmPerWeek, taperWeeks, goalKm }
 function validatePlan(plan, ctx) {
@@ -101,13 +112,7 @@ function validatePlan(plan, ctx) {
     return { ok: false, results, weeks: [] };
   }
 
-  // Totals per week, in the order the model sent them
-  const weeks = plan.weeks.map((wk, i) => {
-    const total = round2(wk.days.reduce((s, d) => s + d.distance_km, 0));
-    const longest = wk.days.reduce((m, d) => Math.max(m, d.distance_km), 0);
-    const dates = wk.days.map((d) => d.date).sort();
-    return { n: i + 1, start: wk.week_start, end: addDays(wk.week_start, 6), runs: wk.days.length, total, longest, dates };
-  });
+  const weeks = weekRows(plan.weeks);
 
   // Weeks
   {
@@ -227,6 +232,7 @@ function failureLines(validation) {
 
 module.exports = {
   validatePlan,
+  weekRows,
   failureLines,
   limits,
   WEEK1_TOLERANCE,

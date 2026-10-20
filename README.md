@@ -117,7 +117,7 @@ Everything on the page (summary, chart and table) updates straight away after ea
 
 ## Training plan (plan.js)
 
-Makes a week-by-week plan for a race from your last 4 full weeks of runs. It runs from PowerShell, not the page, and needs the `claude` command (Claude Code) to be installed and signed in.
+Makes a week-by-week plan for a race from your last 4 full weeks of runs. It runs from PowerShell or through the server's `/api/plan/...` endpoints (see API), and needs the `claude` command (Claude Code) to be installed and signed in.
 
 ```powershell
 node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4
@@ -136,7 +136,7 @@ node plan.js --goal marathon --race-date 2027-05-02 --runs-per-week 4
 
 ## API
 
-GET endpoints are public. POST, PUT and DELETE need the password in an `X-Password` header. Without it they return **401**. Bad data returns **400** with a list of problems.
+GET endpoints and `POST /api/plan/check` are public. The other POSTs, PUT and DELETE need the password in an `X-Password` header. Without it they return **401**. Bad data returns **400** with a list of problems.
 
 | Method | Path | What it does |
 |---|---|---|
@@ -147,6 +147,17 @@ GET endpoints are public. POST, PUT and DELETE need the password in an `X-Passwo
 | GET | `/api/summary` | All-time totals, this week, this month, personal bests, current streak |
 | GET | `/api/weekly` | Km and number of runs per week for the last 12 weeks, oldest first |
 | GET | `/api/health` | `{ "status": "ok", "runs": N }`: quick check that the server and database are up |
+| POST | `/api/plan/check` | Training plan baseline and Realistic yes/no with the reason. Never calls the model |
+| POST | `/api/plan/generate` | Generate a training plan with `claude -p` (password); see below |
+| GET | `/api/plan/latest` | The most recently saved plan, or `{ "plan": null }` |
+
+Both plan POSTs take `{ "goal": "marathon", "race_date": "2027-05-02", "runs_per_week": 4 }`.
+
+`/api/plan/generate` works like `plan.js`: same baseline, checks, retry and log, and it saves to `plans/`.
+- It only runs when the goal is realistic. Otherwise it returns **400** with the check result.
+- It returns the plan, a row per week (dates, runs, total km, long run), the 9 rule results with numbers, and `retried`.
+- Only one generate runs at a time. A second request while one is running gets **409**.
+- After 5 minutes it stops `claude` and returns **504**. If the plan still fails after the retry, or the reply isn't JSON, it returns **502**. In all three cases nothing is saved.
 
 A run in JSON:
 
@@ -203,8 +214,10 @@ These environment variables let you run a test server without touching your real
 | `DB_PATH` | `runs.db` next to the code | Use a throwaway database |
 | `ENV_FILE` | `.env` next to the code | Use a test password file |
 | `NO_BROWSER` | not set | `start.bat` only: set to `1` to skip opening the browser |
-| `PLAN_TODAY` | your computer's date | `plan.js` only: pretend today is another date (`YYYY-MM-DD`) |
-| `CLAUDE_BIN` | `claude` | `plan.js` only: path to the `claude` command if it isn't on your PATH |
+| `PLAN_TODAY` | your computer's date | Training plan: pretend today is another date (`YYYY-MM-DD`) |
+| `CLAUDE_BIN` | `claude` | Training plan: path to the `claude` command if it isn't on your PATH. A `.js` file is run with Node (for a fake `claude` in tests) |
+| `PLAN_OUTPUT_DIR` | the project folder | Training plan: save `plans/` and `logs/plan.jsonl` somewhere else |
+| `PLAN_TIMEOUT_MS` | `300000` (5 minutes) | Server only: how long `/api/plan/generate` may take |
 
 ```powershell
 [IO.File]::WriteAllText("$env:TEMP\test.env", "WRITE_PASSWORD='test-only'`n", (New-Object Text.UTF8Encoding $false))
@@ -222,7 +235,8 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | `db.js` | Opens SQLite, creates the `runs` table, and updates older databases |
 | `validate.js` | Checks run data and builds the 400 error messages |
 | `summary.js` | Totals, personal bests, streak and weekly numbers |
-| `plan.js` | Training plan: baseline, realism check, `claude -p` call, retry, save and log |
+| `plan-core.js` | Training plan logic shared by `plan.js` and the server: baseline, realism check, `claude -p` call, retry, save, log, latest plan |
+| `plan.js` | Training plan from PowerShell: reads the arguments and prints the results |
 | `plan-validate.js` | Checks a plan against every rule (no model) |
 | `test-plan-validate.js` | Tests `plan-validate.js` with hand-made plans |
 | `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog) |

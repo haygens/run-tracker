@@ -380,3 +380,27 @@ All 9 planned steps were finished.
   - **Server:** `POST /api/plan/check` (baseline and realism, no model, public), `POST /api/plan/generate` (password required, only when realistic, one at a time, 5-minute timeout) and `GET /api/plan/latest`.
   - **Page:** a "Training plan" section below the runs table with Check and Generate buttons, the plan table with clickable weeks, and the rule results.
   - The logic from `plan.js` and `plan-validate.js` will move into a shared module so the command line and the server use the same code.
+- **Training plan on the web page, server part: three endpoints and a shared module.** The page isn't changed yet.
+  - **New `plan-core.js`:** the baseline, realism check, `claude -p` call, retry, save and log moved here from `plan.js`, unchanged. Why: the spec says to reuse the logic, not copy it. `plan.js` now only reads the arguments and prints. Its output is identical: I diffed it before and after on the temp database, for a dry run, an unrealistic goal and two kinds of bad arguments.
+  - **The model call no longer blocks.** `spawnSync` became `spawn`. Why: while `spawnSync` waits for `claude`, the whole server is frozen. A second request couldn't even get its 409, and the page couldn't load.
+  - **`POST /api/plan/check`:** public, plain code, never calls the model. It returns the baseline (window, the 4 weeks, avg km/week, avg runs/week, longest run, typical pace), Realistic yes/no, the same reason sentence `plan.js` prints, and the weeks needed/available and earliest race date. Bad input gets a 400 with every problem listed, using the same messages as `plan.js`.
+    - The password check used to cover every POST, so this one route is now let through. Why: the spec says check is public and free.
+  - **`POST /api/plan/generate`:** password required, only runs when the goal is realistic (otherwise 400 with the check result). It returns the saved plan, a row per week, the 9 PASS/FAIL results and `retried`.
+    - Only one at a time: a second request gets 409.
+    - It's stopped after 5 minutes (504). `claude` is killed, and the timeout covers the retry too.
+    - Still failing after the retry, or a reply that isn't JSON: 502. Nothing is saved in any of these cases.
+  - **`GET /api/plan/latest`:** the plan with the newest `created` time in `plans/`, or `{ "plan": null }`.
+  - **Saved plans now include `checks`** (the 9 rule results), so the page can show them for the latest plan too. Older plan files without it still load; `checks` is just null.
+  - **New test settings:** `PLAN_OUTPUT_DIR` keeps test plans and logs out of the real `plans/` and `logs/`, and `PLAN_TIMEOUT_MS` makes the timeout test take 3 seconds instead of 5 minutes. `CLAUDE_BIN` can point to a `.js` file, so a fake `claude` can be used. `PLAN_TODAY` now works for the server too.
+  - The 401 message for a missing password now says "to change runs or generate a plan", since it isn't only about runs anymore.
+  - **Testing,** with a fake `claude`, a temp copy of `runs-backup.db` and a temp output folder (never the real `runs.db`). Each test server was stopped by its own PID. Everything passed:
+    - **Check:** the same numbers as `plan.js` (14.45 km/week, 1.75 runs, 21.1 km, 5:00 /km, 22 weeks needed of 27, realistic). An unrealistic date gives "no" and suggests 2027-03-28. Bad goal, date, runs per week (0, 8, 4.5, true, blank), race date today, empty body, no body and broken JSON each get a 400. It works with no password or a wrong one, and never called the model.
+    - **Generate:** no password and a wrong password give 401. An unrealistic goal gives 400 without calling the model. A good request gives 200 with all 9 PASS, 27 weeks and `retried: false`, saved to the temp folder.
+    - **409:** a second generate while the first was running got 409. `/api/health` answered in 4 ms and check still worked during it. After it finished, the next generate worked.
+    - **Retry:** fail then pass gives 200 with `retried: true`, and the retry prompt carried the exact error. Fail twice gives 502 with the failures, only 2 calls, and the earlier saved plan isn't overwritten. Not JSON gives 502 with the raw output and no retry.
+    - **Timeout** (set to 3 s): 504 after 3.0 s, the fake `claude` process was gone, its temp folder was removed, and the next request was not stuck on 409.
+    - **Latest:** `{ "plan": null }` before any plan, then the newest plan with rows and checks. An older plan file and a broken file didn't get in the way.
+    - **What the model gets:** no `DB_PATH`, `ENV_FILE`, `WRITE_PASSWORD` or `PLAN_TODAY`, an empty temp folder, the same flags as before (`--tools ""`, `--safe-mode`), and only the summary numbers in the prompt.
+    - **Log:** all 9 attempts logged, with timeouts and retries marked.
+    - `plan.js` with the fake `claude`: fail then pass saved after one retry, not JSON stopped with the raw output. `node test-plan-validate.js`: all 13 cases still pass.
+    - `runs.db`, `runs-backup.db`, `logs/plan.jsonl` and the saved plan in `plans/` had the same hashes afterwards.
