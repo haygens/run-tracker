@@ -465,3 +465,16 @@ All 9 planned steps were finished.
     - The focused row showed the blue outline. In a screenshot it looked as before.
     - The only console error is the 404 for `/favicon.ico`, which was already there (batch 6).
     - `runs.db`, `runs-backup.db` and both saved plans had the same hashes afterwards.
+- **Hand test of UI batch 1, and Lighthouse after it.** In the browser:
+  - Clicking a week number, or anywhere on its row, opens and closes it.
+  - Tab reaches week 1 with a blue outline. Enter opens it, Space closes it without scrolling, and Tab moves to week 2.
+  - **Lighthouse after batch 1** (Emulated Desktop, "Custom throttling"): Accessibility 100 (was 97), Best Practices 96, SEO 90, Performance 87 (was 98; the throttling settings for that earlier run weren't recorded).
+- **Checked whether batch 1 slowed the page: it didn't.**
+  - **On load:** batch 1 only adds one button and one hidden span per week row (15 rows). It makes no extra requests and no extra work at load, and there are no new event listeners. Two CSS `:has()` rules only look inside the row.
+  - **Measured:** headless Edge with 4× CPU throttling and cache off, against a test server with a temp copy of the database. It loaded the page 12 times with the pre-batch-1 `app.js` and `style.css` (swapped in by the browser), alternating with 12 loads of the current files. Medians, before → after:
+    - total task time: 1007 → 976 ms
+    - script: 14.9 → 15.1 ms
+    - style: 103 → 106 ms
+    - layout: 473 → 443 ms
+    - Largest Contentful Paint: 436 → 442 ms
+  - **Conclusion:** all within normal variation. The drop from 98 to 87 is most likely the "Custom throttling" setting (or normal run-to-run variation), not the code. Why logged: so later Lighthouse runs compare like with like. Use the same mode and throttling each time.
