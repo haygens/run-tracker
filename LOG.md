@@ -560,3 +560,11 @@ All 9 planned steps were finished.
     - **Edit, Cancel, add:** Edit shows the run's time and pace with the right button state. Cancel goes back to Today with an empty preview. Adding a run keeps the date (Yesterday still pressed) and clears the preview.
     - No console errors apart from the known `favicon.ico` 404.
   - **Known, for batch 6:** the time column is still 115px wide, so a long inline error wraps over several lines (#4 gives the hint and preview the full width). The ✓ makes the pressed button slightly wider, so Yesterday shifts a few pixels.
+- **Hand test of UI batch 4** in the browser. Everything passed:
+  - **Date buttons:** Today is highlighted by default. Yesterday sets 10/19/2026 and moves the highlight. Any other date highlights neither.
+  - **Pace preview:** it updates as I type. 75 with no distance → "1:15:00 · add a distance for pace". Distance 15 → "pace 5:00 /km". 65:30 → "1:05:30 · pace 4:22 /km".
+  - **Inline error:** "65:" shows nothing while typing. On Tab a red error and red border appear, and fixing it to 65:30 clears both.
+  - **Add with Yesterday:** "✓ Saved". The date stays on yesterday and the preview empties.
+  - **Edit and Cancel:** Edit shows the run's time and pace with Yesterday highlighted. Cancel resets to Today. The test run was deleted afterwards.
+  - **Console:** only the `favicon.ico` 404.
+  - **Lighthouse:** skipped, since this batch only added form controls.
