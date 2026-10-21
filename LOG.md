@@ -448,3 +448,7 @@ All 9 planned steps were finished.
   - **After F5:** shown as "Latest saved plan" with its rule results.
   - **Forget password, then Generate, then Cancel:** nothing was generated and the plan didn't change.
   - **Note:** during the first Cancel test I typed my password by accident, which ran the real generate early. It still counted as the real test.
+- **UI and accessibility review, before any changes.** I asked for a review of the page (`public/index.html`, `style.css`, `app.js`) before changing anything. No page files were changed.
+  - **Lighthouse before** (Edge, desktop): Performance 98, Accessibility 97, Best Practices 96, SEO 90.
+  - **The one accessibility failure:** "ARIA attributes are not used as specified for the element's role" on every `tr.plan-week`, because `aria-expanded` is set on a table row.
+  - **Result:** 22 numbered suggestions (look, ease of use, accessibility) and a build order of 6 batches, added to CLAUDE.md under "UI and accessibility improvements". Why: so each batch can be built and checked as its own commit, starting with the Lighthouse failure.

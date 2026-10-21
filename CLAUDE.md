@@ -127,3 +127,51 @@ Page:
 - Result: a table (week, dates, runs, total km, long run) plus the rule results. Clicking a week shows its days.
 - On page load, show the latest saved plan if there is one.
 - Plain HTML/CSS/JS, matching the existing style.
+
+## UI and accessibility improvements
+
+Reviewed on 2026-10-20 (no changes yet). Lighthouse before (Edge, desktop): Performance 98, Accessibility 97, Best Practices 96, SEO 90.
+
+### Items
+Look
+1. Color tokens: define all colors once as CSS variables on `:root`.
+2. Button system: one `.btn` base with primary / secondary / danger / small, each with hover, pressed, focus and disabled states.
+3. Typography: uppercase style only for card labels, plan title as a normal heading, line-height 1.5, a fixed size scale.
+4. Spacing and form layout: fixed spacing steps, time hint full width under the form, buttons aligned without the `&nbsp;` spacer.
+5. Summary cards: one big headline number per card, short date ranges, personal bests as matching cards.
+6. Run-type labels: capitalized colored label with visible text, in the runs table and plan day rows.
+7. Empty states: a short line with a next step for runs, chart and plan.
+8. Dark mode: redefine the color variables under `prefers-color-scheme: dark`.
+
+Ease of use
+9. Today / Yesterday buttons next to the date input.
+10. Live pace preview under the time field, with inline time-format errors.
+11. Shorter messages: success clears after about 5 s, errors stay; password and load messages shown in their own place.
+12. Errors next to the field: `aria-invalid`, message under the field, focus the first bad field.
+13. Narrow-window layout: auto-fit cards, tables scroll sideways, still desktop-only.
+14. Plan week rows show they open (▸/▾), plus Expand all / Collapse all.
+15. Running timer while a plan is generating.
+
+Accessibility
+16. Plan weeks: a real `<button aria-expanded aria-controls>` in the first cell instead of `aria-expanded`/`tabindex` on the `<tr>` (the Lighthouse failure).
+17. Focus outlines: one global `:focus-visible` outline, including the chart columns.
+18. Chart keyboard: one tab stop, arrow keys between weeks, Home/End.
+19. Contrast: input and button borders at least 3:1 (about `#8c959f`), darker danger border.
+20. Color not the only signal: "Editing" tag and `aria-current` on the edited row, icon and word on messages.
+21. Screen-reader messages: message areas always present, `role="alert"` for errors, announce the Check verdict, no `role` on the chart tooltip.
+22. Button sizes: at least 32px tall with 8px between buttons.
+
+### Build order (one commit per batch)
+1. #16
+2. #1, #2, #17, #19, #22
+3. #21, #11, #20
+4. #9, #10
+5. #6, #5
+6. #3, #4, #7, #13, #14, plus the viewport meta tag and a favicon
+
+Later: #8, #12, #15, #18
+
+### Rules for this work
+- Plain HTML/CSS/JS, no libraries.
+- Don't change any server behavior unless an item needs it.
+- After each batch, tell me exactly what to check in the browser and whether to rerun Lighthouse.
