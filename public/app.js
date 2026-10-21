@@ -156,6 +156,23 @@ let runsById = new Map();
 // id of the run being edited, or null when the form is adding a new run
 let editingId = null;
 
+// "long" -> a "Long" label, tinted per type; the word is always shown, not just the color
+function typeLabel(runType) {
+  const label = document.createElement('span');
+  label.className = `type-label type-${runType}`;
+  label.textContent = capitalize(runType);
+  return label;
+}
+
+// A table cell holding text or an element
+function cell(content, className) {
+  const td = document.createElement('td');
+  if (content instanceof Node) td.append(content);
+  else td.textContent = content;
+  if (className) td.className = className;
+  return td;
+}
+
 // A run's name, or its type capitalized if it has none ("long" -> "Long")
 function displayName(run) {
   return run.name || run.run_type.charAt(0).toUpperCase() + run.run_type.slice(1);
@@ -190,19 +207,14 @@ function renderRuns(runs) {
     const cells = [
       [run.date, ''],
       [displayName(run), ''],
-      [run.run_type, ''],
+      [typeLabel(run.run_type), ''],
       [formatDistance(run.distance_km), 'num'],
       [run.elevation_m, 'num'],
       [formatDuration(run.duration_sec), 'num'],
       [formatPace(run.duration_sec, run.distance_km), 'num'],
     ];
     const row = document.createElement('tr');
-    for (const [text, className] of cells) {
-      const cell = document.createElement('td');
-      cell.textContent = text;
-      if (className) cell.className = className;
-      row.appendChild(cell);
-    }
+    for (const [content, className] of cells) row.appendChild(cell(content, className));
     // The row being edited says so in words, not only with its amber background
     if (run.id === editingId) {
       row.className = 'editing';
@@ -247,33 +259,56 @@ function setText(id, text) {
   document.getElementById(id).textContent = text;
 }
 
-// "3:45 /km · Seawall Loop" style line for a personal best
-function describeBest(value, run) {
-  return run ? `${value} · ${displayName(run)}` : 'None yet';
+// A card's headline: the number big, its unit smaller ("21.1" + "km")
+function setValue(id, number, unit) {
+  const unitSpan = document.createElement('span');
+  unitSpan.className = 'unit';
+  unitSpan.textContent = unit;
+  document.getElementById(id).replaceChildren(String(number), ' ', unitSpan);
+}
+
+function plural(n, word) {
+  return `${n} ${n === 1 ? word : word + 's'}`;
+}
+
+// "2026-10-19", "2026-10-20" -> "19–20 Oct"; across months "28 Sep – 4 Oct";
+// across years "28 Dec 2025 – 3 Jan 2026"; one day "20 Oct"
+function shortRange(start, end) {
+  if (start === end) return shortDate(start);
+  if (start.slice(0, 4) !== end.slice(0, 4)) return `${shortDate(start)} ${start.slice(0, 4)} – ${shortDate(end)} ${end.slice(0, 4)}`;
+  if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8, 10))}–${shortDate(end)}`;
+  return `${shortDate(start)} – ${shortDate(end)}`;
+}
+
+// A personal best card: the value and the run's name only, or "None yet"
+function setBest(id, run, number, unit) {
+  if (run) setValue(id, number, unit);
+  else setText(id, '–');
+  setText(`${id}-name`, run ? displayName(run) : 'None yet');
 }
 
 function renderSummary(s) {
-  setText('all-km', `${formatDistance(s.all_time.distance_km)} km`);
-  setText('all-elev', `${s.all_time.elevation_m} m`);
+  setValue('all-km', formatDistance(s.all_time.distance_km), 'km');
   setText('all-runs', s.all_time.runs);
   setText('all-time', formatDuration(s.all_time.duration_sec));
+  setText('all-elev', `${s.all_time.elevation_m} m`);
 
-  setText('week-km', `${formatDistance(s.this_week.distance_km)} km`);
+  setValue('week-km', formatDistance(s.this_week.distance_km), 'km');
   setText('week-runs', s.this_week.runs);
-  setText('week-range', `${s.this_week.start} to ${s.this_week.end}`);
+  setText('week-range', shortRange(s.this_week.start, s.this_week.end));
 
-  setText('month-km', `${formatDistance(s.this_month.distance_km)} km`);
+  setValue('month-km', formatDistance(s.this_month.distance_km), 'km');
   setText('month-runs', s.this_month.runs);
-  setText('month-range', `${s.this_month.start} to ${s.this_month.end}`);
+  setText('month-range', shortRange(s.this_month.start, s.this_month.end));
 
   const { days, start, end } = s.streak;
-  setText('streak-days', `${days} ${days === 1 ? 'day' : 'days'}`);
-  setText('streak-range', days > 0 ? `${start} to ${end}` : 'Run today to start one');
+  setValue('streak-days', days, days === 1 ? 'day' : 'days');
+  setText('streak-range', days > 0 ? shortRange(start, end) : 'Run today to start one');
 
   const pb = s.personal_bests;
-  setText('pb-longest', describeBest(pb.longest_run && `${formatDistance(pb.longest_run.distance_km)} km`, pb.longest_run));
-  setText('pb-elevation', describeBest(pb.most_elevation && `${pb.most_elevation.elevation_m} m`, pb.most_elevation));
-  setText('pb-pace', describeBest(pb.fastest_pace && `${formatDuration(pb.fastest_pace.pace_sec_per_km)} /km`, pb.fastest_pace));
+  setBest('pb-longest', pb.longest_run, formatDistance(pb.longest_run?.distance_km ?? 0), 'km');
+  setBest('pb-elevation', pb.most_elevation, pb.most_elevation?.elevation_m, 'm');
+  setBest('pb-pace', pb.fastest_pace, pb.fastest_pace && formatDuration(pb.fastest_pace.pace_sec_per_km), '/km');
 }
 
 async function loadSummary() {
@@ -866,13 +901,6 @@ function renderCheck(c) {
   planGenerateButton.hidden = !c.realistic;
 }
 
-function cell(text, className) {
-  const td = document.createElement('td');
-  td.textContent = text;
-  if (className) td.className = className;
-  return td;
-}
-
 // A week's runs, shown under its row when clicked
 function daysRow(week, id) {
   const row = document.createElement('tr');
@@ -887,7 +915,7 @@ function daysRow(week, id) {
     const tr = document.createElement('tr');
     tr.append(
       cell(dayDate(day.date)),
-      cell(capitalize(day.run_type)),
+      cell(typeLabel(day.run_type)),
       cell(`${formatDistance(day.distance_km)} km`, 'num'),
       cell(day.note || ''),
     );

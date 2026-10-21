@@ -568,3 +568,23 @@ All 9 planned steps were finished.
   - **Edit and Cancel:** Edit shows the run's time and pace with Yesterday highlighted. Cancel resets to Today. The test run was deleted afterwards.
   - **Console:** only the `favicon.ico` 404.
   - **Lighthouse:** skipped, since this batch only added form controls.
+- **UI batch 5 (#6, #5): run-type labels and summary cards.** No server changes.
+  - **#6 Run-type labels:** the Type column, and the plan's day rows, now show the type capitalized ("Tempo", "Hike") on a light tint, one per type. Before, it was the raw lowercase word.
+    - The word is always shown, so the color is extra, not the only signal. All 7 text/tint pairs are 6.5:1 or better.
+    - The tints are CSS variables like the other colors.
+    - Unnamed runs still show their type as the name, as CLAUDE.md asks.
+    - `cell()` now takes text or an element, and the runs table uses it too instead of its own copy.
+  - **#5 Summary cards:**
+    - Each card now has one big number with a smaller unit: km for all time, this week and this month, and days for the streak. The other numbers are listed below it.
+    - Date ranges are short: "19–20 Oct", "28 Sep – 4 Oct", and with years when the range crosses a year. Before, they were "2026-10-19 to 2026-10-20".
+    - Personal bests are now three matching cards (Longest run, Most elevation, Fastest pace), in the same 4 columns as the cards above, and the pace card notes "Runs of 5 km or more".
+    - Each personal best shows the value and the run's name only, as CLAUDE.md asks. Why no date: the review suggested one, but CLAUDE.md's rule wins.
+  - **Testing:** headless Edge over its debugging port, against a test server on port 3123 with a new, empty temp database (like my real one) and a copy of `plans/`. The server and Edge were stopped by PID afterwards. Everything passed:
+    - **Empty:** 0 km everywhere, "0 days" with "Run today to start one", and each personal best "–" with "None yet". The ranges are "19–20 Oct" and "1–20 Oct".
+    - **After adding the 7 test runs given for the hand test:**
+      - All time: 65.1 km, 7 runs, 7:07:40, 1500 m.
+      - This week: 16 km, 2 runs. This month: 53.1 km, 6 runs. Streak: 3 days, 18–20 Oct.
+      - Personal bests: 21.1 km Sunday Long Run, 850 m Grouse Grind, 4:20 /km Fall 5K.
+    - **Layout:** the headline is 28px with a 16px unit, and the two rows of cards line up.
+    - **Labels:** all 7 runs have a capitalized label, with 7 different tints. The plan's day rows show labels too.
+    - No console errors apart from the known `favicon.ico` 404.

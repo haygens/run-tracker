@@ -35,6 +35,22 @@
   --disabled-bg: #eaeef2;
   --disabled-text: #6e7781;
 
+  /* Run-type labels: text on a light tint, at least 6.5:1 */
+  --type-easy-text: #116329;
+  --type-easy-bg: #dafbe1;
+  --type-long-text: #0a3069;
+  --type-long-bg: #ddf4ff;
+  --type-tempo-text: #953800;
+  --type-tempo-bg: #fff1e5;
+  --type-intervals-text: #99286e;
+  --type-intervals-bg: #ffeff7;
+  --type-race-text: #6639ba;
+  --type-race-bg: #fbefff;
+  --type-trail-text: #0b5e4a;
+  --type-trail-bg: #d8f5ee;
+  --type-hike-text: #6b4423;
+  --type-hike-bg: #f4ece2;
+
   --chart-bar: #2a78d6;
   --chart-bar-hover: #4b8fe2;
   --chart-track: #f2f4f7;
@@ -366,6 +382,26 @@ td.actions .btn {
   margin-left: 8px;
 }
 
+/* Run type: the word on a tint per type */
+.type-label {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--border-faint);
+}
+
+.type-easy { color: var(--type-easy-text); background: var(--type-easy-bg); }
+.type-long { color: var(--type-long-text); background: var(--type-long-bg); }
+.type-tempo { color: var(--type-tempo-text); background: var(--type-tempo-bg); }
+.type-intervals { color: var(--type-intervals-text); background: var(--type-intervals-bg); }
+.type-race { color: var(--type-race-text); background: var(--type-race-bg); }
+.type-trail { color: var(--type-trail-text); background: var(--type-trail-bg); }
+.type-hike { color: var(--type-hike-text); background: var(--type-hike-bg); }
+
 /* Readable by screen readers, invisible on screen */
 .visually-hidden {
   position: absolute;
@@ -378,7 +414,8 @@ td.actions .btn {
 
 /* ---- Summary ---- */
 
-h3 {
+h3,
+.card h4 {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -386,20 +423,52 @@ h3 {
   margin: 0 0 8px;
 }
 
-.stat-groups {
+.cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.stat-group {
+.card {
   border: 1px solid var(--border-soft);
   border-radius: 6px;
   padding: 12px 14px;
 }
 
-.stat-group dl,
+/* The one big number on each card */
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-value .unit {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.card-name {
+  font-weight: 600;
+  margin: 0;
+}
+
+.cards-heading {
+  margin-top: 4px;
+}
+
+.cards:last-child {
+  margin-bottom: 0;
+}
+
+.card dl {
+  font-size: 0.9rem;
+}
+
+.card dl,
 .pbs {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -407,26 +476,20 @@ h3 {
   margin: 0;
 }
 
-.stat-group dt,
+.card dt,
 .pbs dt {
   color: var(--muted);
 }
 
-.stat-group dd,
+.card dd,
 .pbs dd {
   margin: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.stat-group dd {
+.card dd {
   text-align: right;
-}
-
-.stat-big {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0;
 }
 
 .stat-note {
@@ -434,10 +497,6 @@ h3 {
   font-weight: normal;
   color: var(--muted);
   margin: 6px 0 0;
-}
-
-.pbs dt .stat-note {
-  margin: 0;
 }
 
 /* ---- Weekly chart ---- */

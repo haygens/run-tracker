@@ -23,45 +23,58 @@
 
     <section id="summary">
       <h2>Progress</h2>
-      <div class="stat-groups">
-        <div class="stat-group">
+      <div class="cards">
+        <div class="card">
           <h3>All time</h3>
+          <p class="card-value" id="all-km">–</p>
           <dl>
-            <dt>Distance</dt><dd id="all-km">–</dd>
-            <dt>Elevation</dt><dd id="all-elev">–</dd>
             <dt>Runs</dt><dd id="all-runs">–</dd>
             <dt>Time</dt><dd id="all-time">–</dd>
+            <dt>Elevation</dt><dd id="all-elev">–</dd>
           </dl>
         </div>
-        <div class="stat-group">
+        <div class="card">
           <h3>This week</h3>
+          <p class="card-value" id="week-km">–</p>
           <dl>
-            <dt>Distance</dt><dd id="week-km">–</dd>
             <dt>Runs</dt><dd id="week-runs">–</dd>
           </dl>
           <p class="stat-note" id="week-range"></p>
         </div>
-        <div class="stat-group">
+        <div class="card">
           <h3>This month</h3>
+          <p class="card-value" id="month-km">–</p>
           <dl>
-            <dt>Distance</dt><dd id="month-km">–</dd>
             <dt>Runs</dt><dd id="month-runs">–</dd>
           </dl>
           <p class="stat-note" id="month-range"></p>
         </div>
-        <div class="stat-group">
+        <div class="card">
           <h3>Current streak</h3>
-          <p class="stat-big" id="streak-days">–</p>
+          <p class="card-value" id="streak-days">–</p>
           <p class="stat-note" id="streak-range"></p>
         </div>
       </div>
 
-      <h3>Personal bests</h3>
-      <dl class="pbs">
-        <dt>Longest run</dt><dd id="pb-longest">–</dd>
-        <dt>Most elevation</dt><dd id="pb-elevation">–</dd>
-        <dt>Fastest pace <span class="stat-note">(5 km or more)</span></dt><dd id="pb-pace">–</dd>
-      </dl>
+      <h3 class="cards-heading">Personal bests</h3>
+      <div class="cards">
+        <div class="card">
+          <h4>Longest run</h4>
+          <p class="card-value" id="pb-longest">–</p>
+          <p class="card-name" id="pb-longest-name"></p>
+        </div>
+        <div class="card">
+          <h4>Most elevation</h4>
+          <p class="card-value" id="pb-elevation">–</p>
+          <p class="card-name" id="pb-elevation-name"></p>
+        </div>
+        <div class="card">
+          <h4>Fastest pace</h4>
+          <p class="card-value" id="pb-pace">–</p>
+          <p class="card-name" id="pb-pace-name"></p>
+          <p class="stat-note">Runs of 5 km or more</p>
+        </div>
+      </div>
     </section>
 
     <section id="weekly">
