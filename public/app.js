@@ -1,5 +1,4 @@
 const form = document.getElementById('run-form');
-const message = document.getElementById('form-message');
 const tbody = document.querySelector('#runs-table tbody');
 const emptyNote = document.getElementById('runs-empty');
 
@@ -70,16 +69,48 @@ function todayLocal() {
 }
 
 // ---- Messages ----
+// Each area has a polite status (success, info) and/or an alert (errors). Both stay in
+// the page, empty when idle, so screen readers announce new text. Success clears itself.
 
-function showSuccess(text) {
-  message.className = 'success';
-  message.textContent = text;
-  message.hidden = false;
+const SUCCESS_CLEAR_MS = 5000;
+const MESSAGE_ICONS = { success: '✓', error: '✕', info: 'ℹ' };
+
+function messageArea(statusId, alertId) {
+  return { status: document.getElementById(statusId), alert: document.getElementById(alertId), timer: null };
 }
 
-function showErrors(title, details = []) {
-  message.className = 'error';
-  message.textContent = title;
+const formMessages = messageArea('form-message', 'form-alert');
+const headerMessages = messageArea('header-message', null);
+const loadMessages = messageArea(null, 'load-alert');
+
+function clearMessages(area) {
+  clearTimeout(area.timer);
+  for (const el of [area.status, area.alert]) {
+    if (!el) continue;
+    el.className = 'message';
+    el.replaceChildren();
+  }
+}
+
+// kind: 'success', 'info' or 'error'. details: a list under the title. raw: shown in a collapsed box.
+function showMessage(area, kind, title, details = [], raw = '') {
+  clearMessages(area);
+  const el = kind === 'error' ? area.alert : area.status;
+  el.className = `message ${kind}`;
+
+  // Icon and word, so the kind isn't shown by color alone
+  const icon = document.createElement('span');
+  icon.className = 'message-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = MESSAGE_ICONS[kind];
+  el.append(icon);
+  if (kind === 'error') {
+    const word = document.createElement('strong');
+    word.textContent = 'Error: ';
+    el.append(word);
+  }
+  el.append(title);
+
   if (details.length) {
     const list = document.createElement('ul');
     for (const detail of details) {
@@ -87,9 +118,26 @@ function showErrors(title, details = []) {
       item.textContent = detail;
       list.appendChild(item);
     }
-    message.appendChild(list);
+    el.appendChild(list);
   }
-  message.hidden = false;
+  if (raw) {
+    const box = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Show the raw model output';
+    const pre = document.createElement('pre');
+    pre.textContent = raw;
+    box.append(summary, pre);
+    el.appendChild(box);
+  }
+  if (kind === 'success') area.timer = setTimeout(() => clearMessages(area), SUCCESS_CLEAR_MS);
+}
+
+function showSuccess(text) {
+  showMessage(formMessages, 'success', text);
+}
+
+function showErrors(title, details = []) {
+  showMessage(formMessages, 'error', title, details);
 }
 
 // ---- Runs table ----
@@ -108,7 +156,12 @@ function displayName(run) {
   return run.name || run.run_type.charAt(0).toUpperCase() + run.run_type.slice(1);
 }
 
-// Short description used in messages and the delete confirmation
+// "Seawall Loop, 5.2 km, Tue 20 Oct" for success messages
+function shortRun(run) {
+  return `${displayName(run)}, ${formatDistance(run.distance_km)} km, ${dayDate(run.date)}`;
+}
+
+// Full description used in the delete confirmation
 function describeRun(run) {
   return `${run.date} · ${displayName(run)} · ${formatDistance(run.distance_km)} km · ${formatDuration(run.duration_sec)}`;
 }
@@ -139,12 +192,20 @@ function renderRuns(runs) {
       [formatPace(run.duration_sec, run.distance_km), 'num'],
     ];
     const row = document.createElement('tr');
-    if (run.id === editingId) row.className = 'editing';
     for (const [text, className] of cells) {
       const cell = document.createElement('td');
       cell.textContent = text;
       if (className) cell.className = className;
       row.appendChild(cell);
+    }
+    // The row being edited says so in words, not only with its amber background
+    if (run.id === editingId) {
+      row.className = 'editing';
+      row.setAttribute('aria-current', 'true');
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = 'Editing';
+      row.children[1].append(' ', tag);
     }
     const actions = document.createElement('td');
     actions.className = 'actions';
@@ -160,7 +221,7 @@ async function loadRuns() {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     renderRuns(await res.json());
   } catch (err) {
-    showErrors(`Could not load runs: ${err.message}`);
+    showMessage(loadMessages, 'error', `Could not load runs: ${err.message}`);
   }
 }
 
@@ -216,7 +277,7 @@ async function loadSummary() {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     renderSummary(await res.json());
   } catch (err) {
-    showErrors(`Could not load summary: ${err.message}`);
+    showMessage(loadMessages, 'error', `Could not load summary: ${err.message}`);
   }
 }
 
@@ -384,7 +445,7 @@ async function loadWeekly() {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     renderWeekly(await res.json());
   } catch (err) {
-    showErrors(`Could not load weekly chart: ${err.message}`);
+    showMessage(loadMessages, 'error', `Could not load weekly chart: ${err.message}`);
   }
 }
 
@@ -397,6 +458,7 @@ window.addEventListener('resize', () => {
 
 // Reload everything that depends on the runs (after add, edit or delete)
 function refresh() {
+  clearMessages(loadMessages);
   return Promise.all([loadRuns(), loadSummary(), loadWeekly()]);
 }
 
@@ -404,7 +466,7 @@ function refresh() {
 
 function startEdit(run) {
   editingId = run.id;
-  message.hidden = true;
+  clearMessages(formMessages);
 
   form.elements.date.value = run.date;
   form.elements.name.value = run.name || ''; // blank stays blank, so the type keeps standing in
@@ -437,14 +499,14 @@ function stopEdit() {
 }
 
 cancelButton.addEventListener('click', () => {
-  message.hidden = true;
+  clearMessages(formMessages);
   stopEdit();
 });
 
 // Esc also cancels editing
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && editingId !== null && !passwordDialog.open) {
-    message.hidden = true;
+    clearMessages(formMessages);
     stopEdit();
   }
 });
@@ -492,7 +554,7 @@ function forgetPassword() {
 
 document.getElementById('forget-password').addEventListener('click', () => {
   forgetPassword();
-  showSuccess('Password forgotten. You will be asked again next time you add, edit or delete, or generate a plan.');
+  showMessage(headerMessages, 'success', "Password forgotten. You'll be asked again next time.");
 });
 
 // Shows the password dialog. Resolves with the password, or null if cancelled.
@@ -567,7 +629,7 @@ async function deleteRun(run) {
   const ok = window.confirm(`Delete this run?\n\n${describeRun(run)}\n\nThis can't be undone.`);
   if (!ok) return;
 
-  message.hidden = true;
+  clearMessages(formMessages);
   try {
     const res = await writeRequest(`/api/runs/${run.id}`, 'DELETE');
     if (res === null) {
@@ -583,7 +645,7 @@ async function deleteRun(run) {
     if (res.status === 404) {
       showErrors('That run was already deleted.');
     } else {
-      showSuccess(`Deleted: ${describeRun(run)}`);
+      showSuccess(`Deleted · ${shortRun(run)}`);
     }
     if (editingId === run.id) stopEdit();
     await refresh();
@@ -596,7 +658,7 @@ async function deleteRun(run) {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  message.hidden = true;
+  clearMessages(formMessages);
 
   const data = new FormData(form);
   const duration = parseDuration(data.get('duration'));
@@ -638,10 +700,10 @@ form.addEventListener('submit', async (event) => {
     }
 
     if (isEdit) {
-      showSuccess(`Updated: ${describeRun(body)}`);
+      showSuccess(`Updated · ${shortRun(body)}`);
       stopEdit();
     } else {
-      showSuccess(`Saved: ${formatDistance(body.distance_km)} km on ${body.date}`);
+      showSuccess(`Saved · ${shortRun(body)}`);
       // Keep date and type (handy for adding several runs), clear the rest
       form.elements.name.value = '';
       form.elements.distance_km.value = '';
@@ -661,7 +723,7 @@ form.addEventListener('submit', async (event) => {
 // the password and takes a minute or two; the server runs one at a time.
 
 const planForm = document.getElementById('plan-form');
-const planMessage = document.getElementById('plan-message');
+const planMessages = messageArea('plan-message', 'plan-alert');
 const planGenerateButton = document.getElementById('plan-generate-button');
 const planCheckResult = document.getElementById('plan-check-result');
 const planResult = document.getElementById('plan-result');
@@ -672,35 +734,19 @@ const GENERATING_TEXT = 'Generating plan… this takes about 2 minutes.';
 let generatingPlan = false;
 let shownPlan = null; // the plan in the table, so a failed generate can relabel it
 
-// kind: 'success', 'error' or 'info'. raw (optional) is shown in a collapsed box.
 function showPlanMessage(kind, title, details = [], raw = '') {
-  planMessage.className = kind;
-  planMessage.textContent = title;
-  if (details.length) {
-    const list = document.createElement('ul');
-    for (const detail of details) {
-      const item = document.createElement('li');
-      item.textContent = detail;
-      list.appendChild(item);
-    }
-    planMessage.appendChild(list);
-  }
-  if (raw) {
-    const box = document.createElement('details');
-    const summary = document.createElement('summary');
-    summary.textContent = 'Show the raw model output';
-    const pre = document.createElement('pre');
-    pre.textContent = raw;
-    box.append(summary, pre);
-    planMessage.appendChild(box);
-  }
-  planMessage.hidden = false;
+  showMessage(planMessages, kind, title, details, raw);
 }
 
 // "2027-05-02" -> "Sun 2 May 2027"
 function longDate(ymd) {
   const day = new Date(ymd + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
   return `${day} ${shortDate(ymd)} ${ymd.slice(0, 4)}`;
+}
+
+// "2026-10-27" -> "Tue 27 Oct"
+function dayDate(ymd) {
+  return longDate(ymd).slice(0, -5);
 }
 
 function capitalize(text) {
@@ -740,6 +786,8 @@ function renderCheck(c) {
   verdict.textContent = `Realistic: ${c.realistic ? 'yes' : 'no'}.`;
   verdict.className = c.realistic ? 'yes' : 'no';
   setText('check-reason', capitalize(c.reason));
+  // The result box isn't a live region, so read the verdict out from here
+  setText('plan-announce', `${verdict.textContent} ${capitalize(c.reason)}`);
 
   let earliest;
   if (c.realistic) earliest = `Earliest race date by this rule: ${longDate(c.earliest_race_date)}`;
@@ -771,7 +819,7 @@ function daysRow(week, id) {
   for (const day of days) {
     const tr = document.createElement('tr');
     tr.append(
-      cell(longDate(day.date).slice(0, -5)), // "Tue 27 Oct"
+      cell(dayDate(day.date)),
       cell(capitalize(day.run_type)),
       cell(`${formatDistance(day.distance_km)} km`, 'num'),
       cell(day.note || ''),
@@ -877,7 +925,8 @@ planForm.addEventListener('input', () => {
 planForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (generatingPlan) return;
-  planMessage.hidden = true;
+  clearMessages(planMessages);
+  setText('plan-announce', '');
   planCheckResult.hidden = true;
   planGenerateButton.hidden = true;
   try {
@@ -900,7 +949,7 @@ planForm.addEventListener('submit', async (event) => {
 planGenerateButton.addEventListener('click', async () => {
   if (generatingPlan) return;
   const request = planRequest();
-  planMessage.hidden = true;
+  clearMessages(planMessages);
   setGenerating(true);
   try {
     // The "Generating" message appears once the password is known, not behind the dialog

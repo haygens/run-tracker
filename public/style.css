@@ -211,29 +211,57 @@ section {
   max-width: 115px;
 }
 
-#form-message,
-#plan-message {
+/* ---- Messages ---- */
+
+/* Empty areas stay in the page (for screen readers) but take no space */
+.message:not(:empty) {
   margin-top: 12px;
   padding: 8px 12px;
   border-radius: 4px;
 }
 
-#form-message.success,
-#plan-message.success {
+.message.success {
   background: var(--success-bg);
   color: var(--success);
 }
 
-#form-message.error,
-#plan-message.error {
+.message.error {
   background: var(--danger-bg);
   color: var(--danger);
 }
 
-#form-message ul,
-#plan-message ul {
+.message.info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.message-icon {
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.message ul {
   margin: 4px 0 0;
   padding-left: 20px;
+}
+
+.message details {
+  margin-top: 6px;
+}
+
+.message pre {
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+#load-alert:not(:empty) {
+  margin: 0 0 24px;
 }
 
 /* Runs table */
@@ -274,6 +302,18 @@ section:has(#run-form.editing) {
 tbody tr.editing,
 tbody tr.editing:hover {
   background: var(--warn-bg);
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--warn-border);
+  border-radius: 4px;
 }
 
 td.actions {
@@ -491,6 +531,18 @@ h2 .stat-note {
   margin: 0;
 }
 
+.header-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-header .message:not(:empty) {
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
 #password-status:not([hidden]) {
   display: flex;
   align-items: center;
@@ -554,26 +606,6 @@ h2 .stat-note {
 #plan-form select:disabled {
   background: var(--surface-subtle);
   color: var(--muted);
-}
-
-#plan-message.info {
-  background: var(--info-bg);
-  color: var(--info);
-}
-
-#plan-message details {
-  margin-top: 6px;
-}
-
-#plan-message pre {
-  white-space: pre-wrap;
-  max-height: 240px;
-  overflow: auto;
-  background: var(--surface);
-  color: var(--text);
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
 }
 
 #plan-check-result {

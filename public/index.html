@@ -9,11 +9,17 @@
   <main>
     <header class="page-header">
       <h1>Run Tracker</h1>
-      <div id="password-status" hidden>
-        <span class="stat-note">Password remembered for this tab</span>
-        <button type="button" id="forget-password" class="btn btn-secondary btn-sm">Forget password</button>
+      <div class="header-side">
+        <p id="header-message" class="message" role="status"></p>
+        <div id="password-status" hidden>
+          <span class="stat-note">Password remembered for this tab</span>
+          <button type="button" id="forget-password" class="btn btn-secondary btn-sm">Forget password</button>
+        </div>
       </div>
     </header>
+
+    <!-- Message areas are always in the page (empty when idle) so screen readers announce new text -->
+    <div id="load-alert" class="message" role="alert"></div>
 
     <section id="summary">
       <h2>Progress</h2>
@@ -61,7 +67,7 @@
     <section id="weekly">
       <h2>Km per week <span class="stat-note">last 12 weeks, Monday to Sunday</span></h2>
       <div id="weekly-chart" class="chart">
-        <div id="weekly-tooltip" class="chart-tooltip" role="status" hidden></div>
+        <div id="weekly-tooltip" class="chart-tooltip" aria-hidden="true" hidden></div>
       </div>
       <details class="chart-table">
         <summary>Show as table</summary>
@@ -124,7 +130,8 @@
           </div>
         </div>
       </form>
-      <div id="form-message" role="status" hidden></div>
+      <div id="form-message" class="message" role="status"></div>
+      <div id="form-alert" class="message" role="alert"></div>
     </section>
 
     <section>
@@ -175,7 +182,9 @@
           </div>
         </div>
       </form>
-      <div id="plan-message" role="status" hidden></div>
+      <div id="plan-message" class="message" role="status"></div>
+      <div id="plan-alert" class="message" role="alert"></div>
+      <p id="plan-announce" class="visually-hidden" role="status"></p>
 
       <div id="plan-check-result" hidden>
         <dl class="pbs plan-baseline">
@@ -221,7 +230,7 @@
     </section>
   </main>
 
-  <dialog id="password-dialog" aria-labelledby="password-title">
+  <dialog id="password-dialog" aria-labelledby="password-title" aria-describedby="password-message">
     <form id="password-form" method="dialog">
       <h2 id="password-title">Password needed</h2>
       <p id="password-message"></p>

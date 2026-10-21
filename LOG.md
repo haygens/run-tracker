@@ -508,3 +508,27 @@ All 9 planned steps were finished.
   - **Password dialog:** Continue is blue, Cancel white. My test run was deleted afterwards.
   - **Console:** no errors except the `favicon.ico` 404.
   - **Lighthouse after batch 2** (Emulated Desktop, Custom throttling): Performance 89, Accessibility 100, Best Practices 96, SEO 90.
+- **UI batch 3 (#21, #11, #20): screen-reader messages, shorter messages, not color alone.** No server changes.
+  - **#21 Screen readers:**
+    - The message areas are now always in the page, empty when idle, instead of being hidden and shown. Why: screen readers often miss text that appears in an area that was hidden a moment before.
+    - Each area has a polite `role="status"` for success and info, and a `role="alert"` for errors, so errors are announced right away.
+    - The Check verdict ("Realistic: yes. 15 weeks available is enough for the 12 needed.") is read out from a hidden status area, because the result box isn't a live region.
+    - The chart tooltip no longer has `role="status"` (it's `aria-hidden`). Why: each bar's own label is already read on focus, so the tooltip read it a second time.
+    - The password dialog now points at its message (`aria-describedby`), so "Wrong password…" is read when it opens.
+  - **#11 Shorter messages in the right place:**
+    - Success is now "Saved · Seawall Loop, 5.2 km, Tue 20 Oct", "Updated · …" and "Deleted · …". It clears itself after 5 seconds. Errors stay until the next action.
+    - "Password forgotten. You'll be asked again next time." now shows in the header next to the button, not under the add-run form.
+    - Errors loading the runs, summary or chart now show at the top of the page, not under the add-run form where they looked like form errors. They clear on the next successful reload.
+    - One helper (`showMessage`) now does this for every area, replacing the separate form and plan versions.
+  - **#20 Not color alone:**
+    - Messages start with an icon (✓, ✕ or ℹ, hidden from screen readers), and errors with the word "Error:".
+    - The run being edited shows an "Editing" tag next to its name and has `aria-current="true"`, not only the amber background.
+  - **Testing:** headless Edge over its debugging port, against a test server on port 3123 with a temp copy of `runs-backup.db`, a temp `.env` and a copy of `plans/`. The server and Edge were stopped by PID afterwards. Everything passed:
+    - On load, all 7 areas are present and empty. Edge's accessibility tree shows 4 polite and 3 assertive live regions. The tooltip has no role, and the dialog has `aria-describedby`.
+    - A bad time (25:75) gave "✕ Error: Seconds must be 00-59…" in the alert, and it was still there after 5 s.
+    - Adding a run (through the password dialog) gave "✓ Saved · Batch 3 test, 5.2 km, Tue 20 Oct" and cleared the old error. The success message was gone after 5 s.
+    - Edit showed the "Editing" tag and `aria-current` on that row only. Save gave "✓ Updated · …, 6 km, …" and removed the tag. Delete gave "✓ Deleted · …".
+    - Forget password showed the message in the header (the form area stayed empty), and it cleared after 5 s.
+    - Check read out "Realistic: yes. …". A blank race date gave a plan alert and cleared the read-out. Generate then Cancel gave "✕ Error: No plan was generated…" (no model run).
+    - A summary request forced to fail (500) showed "✕ Error: Could not load summary: Server returned 500" at the top, with nothing under the form.
+    - The only console errors were the blank-date 400, which was triggered on purpose, and the forced 500.
