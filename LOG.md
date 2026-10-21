@@ -544,3 +544,19 @@ All 9 planned steps were finished.
   - **Console:** only the known `favicon.ico` 404, and the expected 400 from the blank date.
   - **Not tested:** the Narrator check, which I skipped.
   - **Lighthouse after batch 3** (Emulated Desktop, Custom throttling): Performance 87, Accessibility 100, Best Practices 96, SEO 90.
+- **UI batch 4 (#9, #10): Today / Yesterday buttons and a live pace preview.** No server changes.
+  - **#9 Today / Yesterday:** two small buttons under the date field set the date to today or yesterday (local time, via the new `localDate(daysAgo)`).
+    - The one matching the date field shows as pressed: `aria-pressed="true"`, a light blue fill and a ✓ (hidden from screen readers). Neither is pressed for any other date.
+    - The pressed state stays right on load, after picking a date, in edit mode, after Cancel or Esc, and after adding a run (the date is kept).
+    - The Date field is now a `div` with its own `<label for>`, because a label can't hold buttons.
+  - **#10 Pace preview:** under the time field, as you type, it shows how the time was read and the pace. For example "1:05:30 · pace 12:36 /km" for 65:30 over 5.2 km, or "1:15:00 · add a distance for pace" for 75 with no distance. It updates when the distance changes too, and fills in when you Edit a run.
+    - **Errors:** a time that can't be read shows its error under the field only when you leave the field, or press Enter. The field is then marked `aria-invalid` with a red border. Why: half-typed times like "65:" shouldn't flash an error. Fixing the time clears it.
+    - The preview is linked to the field with `aria-describedby`, so a screen reader reads it with the field. It's not a live region, so it doesn't talk on every keystroke.
+  - **Testing:** headless Edge over its debugging port, against a test server on port 3123 with a temp copy of `runs-backup.db`, a temp `.env` and a copy of `plans/`. The server and Edge were stopped by PID afterwards. All 23 checks passed:
+    - **Date buttons:** Today pressed on load, and Edge's accessibility tree reports a button named "Today" (no ✓), pressed. Yesterday sets 2026-10-19 and swaps the pressed state, and another date presses neither.
+    - **Keyboard and size:** Tab goes date → Today → Yesterday → Name, and Space works. The buttons are 32px tall and 8px apart.
+    - **Preview readings:** 75 → 1:15:00, with the pace once a distance is entered. 27:00 over 5.2 km → 5:12 /km. 65:30 and 1:05:30 both read as 1:05:30.
+    - **Errors:** "65:" shows nothing while typing, and the error, `aria-invalid` and red border once the field is left. Fixing it clears all three. Enter with 25:75 shows the inline error and the form alert.
+    - **Edit, Cancel, add:** Edit shows the run's time and pace with the right button state. Cancel goes back to Today with an empty preview. Adding a run keeps the date (Yesterday still pressed) and clears the preview.
+    - No console errors apart from the known `favicon.ico` 404.
+  - **Known, for batch 6:** the time column is still 115px wide, so a long inline error wraps over several lines (#4 gives the hint and preview the full width). The ✓ makes the pressed button slightly wider, so Yesterday shifts a few pixels.

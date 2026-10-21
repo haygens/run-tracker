@@ -27,6 +27,8 @@
   --success-bg: #dafbe1;
   --info: #0a3069;
   --info-bg: #ddf4ff;
+  --selected-bg: #ddf4ff;
+  --selected-text: #0a3069;
   --warn-border: #d4a72c;
   --warn-bg: #fff8c5;
 
@@ -152,6 +154,18 @@ section {
   background: var(--danger-bg-pressed);
 }
 
+/* A pressed toggle (aria-pressed), e.g. the Today button when the date is today */
+.btn-secondary[aria-pressed="true"]:not(:disabled) {
+  background: var(--selected-bg);
+  border-color: var(--accent);
+  color: var(--selected-text);
+}
+
+.btn[aria-pressed="true"]::before {
+  content: "✓" / "";
+  margin-right: 4px;
+}
+
 .btn:disabled {
   background: var(--disabled-bg);
   color: var(--disabled-text);
@@ -174,6 +188,7 @@ section {
 }
 
 #run-form label,
+#run-form .field,
 #run-form .form-actions,
 #plan-form label,
 #plan-form .form-actions {
@@ -202,6 +217,30 @@ section {
 
 #run-form input.wide {
   width: 180px;
+}
+
+/* The date field is as wide as its Today / Yesterday buttons */
+#run-form #run-date {
+  width: 100%;
+}
+
+#run-form input[aria-invalid="true"] {
+  border-color: var(--danger-border);
+}
+
+#run-form .preview {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 115px;
+}
+
+#run-form .preview:empty {
+  display: none;
+}
+
+#run-form .preview.error {
+  color: var(--danger);
 }
 
 #run-form .hint {

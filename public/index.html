@@ -87,10 +87,15 @@
     <section>
       <h2 id="form-heading">Add a run</h2>
       <form id="run-form" novalidate>
-        <label>
-          Date
-          <input type="date" name="date" required>
-        </label>
+        <!-- A div, not a label: a label can't hold the Today/Yesterday buttons -->
+        <div class="field">
+          <label for="run-date">Date</label>
+          <input type="date" id="run-date" name="date" required>
+          <div class="buttons date-shortcuts">
+            <button type="button" class="btn btn-secondary btn-sm" data-days-ago="0" aria-pressed="false">Today</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-days-ago="1" aria-pressed="false">Yesterday</button>
+          </div>
+        </div>
         <label>
           Name
           <input type="text" name="name" maxlength="60" placeholder="Optional, e.g. Seawall Loop" autocomplete="off" class="wide">
@@ -106,7 +111,8 @@
         <label>
           Time (minutes)
           <input type="text" name="duration" placeholder="75 or 65:30" autocomplete="off" required
-                 aria-describedby="duration-hint">
+                 aria-describedby="duration-preview duration-hint">
+          <small id="duration-preview" class="preview"></small>
           <small id="duration-hint" class="hint">75 = 75 min · 65:30 = 65 min 30 s · 1:05:30 also works</small>
         </label>
         <label>

@@ -60,12 +60,17 @@ function formatPace(durationSec, distanceKm) {
   return formatDuration(secPerKm);
 }
 
-// Today's date in local time as YYYY-MM-DD (toISOString would use UTC)
-function todayLocal() {
+// A date in local time as YYYY-MM-DD, daysAgo days before today (toISOString would use UTC)
+function localDate(daysAgo = 0) {
   const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function todayLocal() {
+  return localDate(0);
 }
 
 // ---- Messages ----
@@ -480,6 +485,7 @@ function startEdit(run) {
   cancelButton.hidden = false;
   form.classList.add('editing');
   renderRuns([...runsById.values()]); // highlight the row being edited
+  updateFormHelpers();
 
   form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   form.elements.distance_km.focus();
@@ -496,6 +502,7 @@ function stopEdit() {
   cancelButton.hidden = true;
   form.classList.remove('editing');
   renderRuns([...runsById.values()]);
+  updateFormHelpers();
 }
 
 cancelButton.addEventListener('click', () => {
@@ -654,6 +661,64 @@ async function deleteRun(run) {
   }
 }
 
+// ---- Date shortcuts and pace preview ----
+
+const dateButtons = form.querySelectorAll('.date-shortcuts button');
+const pacePreview = document.getElementById('duration-preview');
+
+// Today / Yesterday: the one matching the date field shows as pressed
+function updateDateShortcuts() {
+  for (const button of dateButtons) {
+    const matches = form.elements.date.value === localDate(Number(button.dataset.daysAgo));
+    button.setAttribute('aria-pressed', String(matches));
+  }
+}
+
+for (const button of dateButtons) {
+  button.addEventListener('click', () => {
+    form.elements.date.value = localDate(Number(button.dataset.daysAgo));
+    updateDateShortcuts();
+  });
+}
+
+// Under the time field: how the time was read, and the pace once there's a distance.
+// A time that can't be read only shows its error once you leave the field (or submit),
+// so half-typed times like "65:" don't flash an error.
+function updatePacePreview(withError = false) {
+  const input = form.elements.duration;
+  const text = input.value.trim();
+  pacePreview.className = 'preview';
+  input.removeAttribute('aria-invalid');
+  if (text === '') {
+    pacePreview.textContent = '';
+    return;
+  }
+  const duration = parseDuration(text);
+  if (duration.error) {
+    pacePreview.textContent = withError ? `✕ ${duration.error}` : '';
+    if (withError) {
+      pacePreview.className = 'preview error';
+      input.setAttribute('aria-invalid', 'true');
+    }
+    return;
+  }
+  const km = Number(form.elements.distance_km.value);
+  const time = formatDuration(duration.seconds);
+  pacePreview.textContent = km > 0 && Number.isFinite(km)
+    ? `${time} · pace ${formatPace(duration.seconds, km)} /km`
+    : `${time} · add a distance for pace`;
+}
+
+function updateFormHelpers() {
+  updateDateShortcuts();
+  updatePacePreview();
+}
+
+form.elements.date.addEventListener('input', updateDateShortcuts);
+form.elements.duration.addEventListener('input', () => updatePacePreview());
+form.elements.duration.addEventListener('change', () => updatePacePreview(true));
+form.elements.distance_km.addEventListener('input', () => updatePacePreview(form.elements.duration.getAttribute('aria-invalid') === 'true'));
+
 // ---- Add / save form ----
 
 form.addEventListener('submit', async (event) => {
@@ -664,6 +729,7 @@ form.addEventListener('submit', async (event) => {
   const duration = parseDuration(data.get('duration'));
   if (duration.error) {
     showErrors(duration.error);
+    updatePacePreview(true);
     return;
   }
 
@@ -709,6 +775,7 @@ form.addEventListener('submit', async (event) => {
       form.elements.distance_km.value = '';
       form.elements.elevation_m.value = '0';
       form.elements.duration.value = '';
+      updateFormHelpers();
     }
     await refresh();
   } catch (err) {
@@ -991,6 +1058,7 @@ async function loadLatestPlan() {
 }
 
 form.elements.date.value = todayLocal();
+updateFormHelpers();
 passwordStatus.hidden = !getPassword();
 refresh();
 loadLatestPlan();
