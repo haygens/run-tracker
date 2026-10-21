@@ -453,3 +453,15 @@ All 9 planned steps were finished.
   - **The one accessibility failure:** "ARIA attributes are not used as specified for the element's role" on every `tr.plan-week`, because `aria-expanded` is set on a table row.
   - **Result:** 22 numbered suggestions (look, ease of use, accessibility) and a build order of 6 batches, added to CLAUDE.md under "UI and accessibility improvements". Why: so each batch can be built and checked as its own commit, starting with the Lighthouse failure.
 - **Meta description added to batch 6** of the UI plan in CLAUDE.md. Why: it's the likely reason SEO is 90.
+- **UI batch 1 (#16): plan weeks open with a real button.** The week number in each plan row is now a `<button>` carrying `aria-expanded` and `aria-controls` (pointing at that week's days row). `aria-expanded` and `tabindex` are gone from the `<tr>`. Why: a table row isn't allowed `aria-expanded`, which was the only Lighthouse accessibility failure.
+  - Looks the same as before: the button is styled as the plain week number. Clicking anywhere on the row still opens it. Keyboard focus still outlines the whole row.
+  - The custom Enter/Space key handler is removed, because a button already turns those keys into a click.
+  - Screen readers hear "Week 1, button, collapsed" (a hidden "Week " before the number).
+  - **Testing:** headless Edge over its debugging port, against a test server on port 3123 with a temp copy of `runs-backup.db`, a temp `.env` and a copy of `plans/`. The server and Edge were stopped afterwards. Everything passed:
+    - 15 week rows, no `tr` with `aria-expanded` or `tabindex`, and every button collapsed and pointing at its own days row.
+    - Edge's accessibility tree: 15 buttons named "Week 1"…"Week 15", with expanded = false.
+    - Clicking the button opened week 1, and clicking its dates cell closed it.
+    - Tab reached the week 1 button. Enter opened it (once, not twice), Space closed it, focus stayed, and the next Tab went to week 2.
+    - The focused row showed the blue outline. In a screenshot it looked as before.
+    - The only console error is the 404 for `/favicon.ico`, which was already there (batch 6).
+    - `runs.db`, `runs-backup.db` and both saved plans had the same hashes afterwards.

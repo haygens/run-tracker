@@ -759,9 +759,10 @@ function cell(text, className) {
 }
 
 // A week's runs, shown under its row when clicked
-function daysRow(week) {
+function daysRow(week, id) {
   const row = document.createElement('tr');
   row.className = 'plan-days';
+  row.id = id;
   row.hidden = true;
   const td = document.createElement('td');
   td.colSpan = 5;
@@ -823,18 +824,30 @@ function renderPlan(data, isLatest) {
 
   planTableBody.replaceChildren();
   rows.forEach((row, i) => {
+    const daysId = `plan-days-${i}`;
+    // A real button carries aria-expanded (a <tr> can't); the whole row stays clickable
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'plan-week-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', daysId);
+    const prefix = document.createElement('span');
+    prefix.className = 'visually-hidden';
+    prefix.textContent = 'Week ';
+    toggle.append(prefix, String(row.n));
+    const weekCell = document.createElement('td');
+    weekCell.appendChild(toggle);
+
     const tr = document.createElement('tr');
     tr.className = 'plan-week';
-    tr.tabIndex = 0;
-    tr.setAttribute('aria-expanded', 'false');
     tr.append(
-      cell(row.n),
+      weekCell,
       cell(`${row.start} to ${row.end}`),
       cell(row.runs, 'num'),
       cell(formatDistance(row.total), 'num'),
       cell(formatDistance(row.longest), 'num'),
     );
-    planTableBody.append(tr, daysRow(plan.weeks[i]));
+    planTableBody.append(tr, daysRow(plan.weeks[i], daysId));
   });
   setText('plan-total', formatDistance(rows.reduce((sum, r) => sum + r.total, 0)));
 
@@ -845,20 +858,13 @@ function renderPlan(data, isLatest) {
 function toggleWeek(row) {
   const days = row.nextElementSibling;
   days.hidden = !days.hidden;
-  row.setAttribute('aria-expanded', String(!days.hidden));
+  row.querySelector('.plan-week-toggle').setAttribute('aria-expanded', String(!days.hidden));
 }
 
+// Clicks anywhere on a week row, and Enter/Space on its button (which fire a click)
 planTableBody.addEventListener('click', (event) => {
   const row = event.target.closest('tr.plan-week');
   if (row) toggleWeek(row);
-});
-
-planTableBody.addEventListener('keydown', (event) => {
-  const row = event.target.closest('tr.plan-week');
-  if (row && (event.key === 'Enter' || event.key === ' ')) {
-    event.preventDefault();
-    toggleWeek(row);
-  }
 });
 
 // A changed input makes the last check out of date: hide it until Check is pressed again
