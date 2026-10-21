@@ -588,3 +588,11 @@ All 9 planned steps were finished.
     - **Layout:** the headline is 28px with a 16px unit, and the two rows of cards line up.
     - **Labels:** all 7 runs have a capitalized label, with 7 different tints. The plan's day rows show labels too.
     - No console errors apart from the known `favicon.ico` 404.
+- **Hand test of UI batch 5** in the browser, on a throwaway database (`DB_PATH` set to `$env:TEMP\run-tracker-ui-test.db`). Everything passed:
+  - **Before adding runs:** big 0s, the short ranges "19–20 Oct" and "1–20 Oct", "Run today to start one", and each personal-best card with "–" and "None yet".
+  - **A data-entry slip, useful as a check:** I first entered Grouse Grind with the wrong date (10-05) and missed Fall 5K. Every number still matched the data actually entered: 60.1 km, 1480 m, month 48.1 km, and fastest 4:30 Seawall Loop. The chart put Grouse Grind in the 5 Oct week.
+  - **After fixing the data:** 65.1 km, 7 runs, 7:07:40, 1500 m. Week 16 km / 2 runs, month 53.1 km / 6 runs, streak 3 days. Personal bests 21.1 km Sunday Long Run, 850 m Grouse Grind, 4:20 /km Fall 5K.
+  - **Labels:** seven different type labels. The unnamed runs show Easy and Intervals. The editing row is readable, and the plan's day rows use the same labels.
+  - **Console:** only the `favicon.ico` 404.
+  - **Lighthouse after batch 5** (Emulated Desktop, Custom throttling): Performance 98, Accessibility 100, Best Practices 96, SEO 90.
+  - **Found:** in Lighthouse's narrow preview the 4 summary cards are squeezed ("CURR STRE…" cut off). Batch 6 (#13, narrow-window layout) should fix it.
