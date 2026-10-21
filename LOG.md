@@ -498,3 +498,13 @@ All 9 planned steps were finished.
     - Check still works and shows Generate. Edit shows Cancel, the password dialog opens, and Esc closes it without saving and then leaves edit mode.
     - No console errors apart from the known `favicon.ico` 404. I looked at screenshots of the forms, the runs table, the chart focus, the plan form and the dialog.
     - `runs.db`, `runs-backup.db` and both saved plans had the same hashes afterwards.
+- **Hand test of UI batch 2** in the browser. Everything passed:
+  - **Look:** Add run is blue. Fields have darker borders and match the button height. Check and Forget password are white with a grey border.
+  - **Edit and Delete:** Edit is white/grey and Delete white/red, both bigger with a gap between them.
+  - **Hover and press:** hover darkens Add run's blue, turns Edit light grey and Delete light red. Pressing darkens a button and moves it down slightly.
+  - **Hidden buttons:** Edit shows Cancel and "Save changes", and Esc hides Cancel. "Generate plan" appears after Check and is blue.
+  - **Not tested:** the disabled state while generating, to avoid a model run.
+  - **Keyboard:** a blue outline on the chart weeks, "Show as table", fields, buttons and Edit/Delete. Mouse clicks leave no outline.
+  - **Password dialog:** Continue is blue, Cancel white. My test run was deleted afterwards.
+  - **Console:** no errors except the `favicon.ico` 404.
+  - **Lighthouse after batch 2** (Emulated Desktop, Custom throttling): Performance 89, Accessibility 100, Best Practices 96, SEO 90.
