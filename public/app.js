@@ -117,7 +117,7 @@ function makeButton(text, action, id) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = text;
-  button.className = `row-button ${action}`;
+  button.className = `btn btn-sm ${action === 'delete' ? 'btn-danger' : 'btn-secondary'}`;
   button.dataset.action = action;
   button.dataset.id = id;
   return button;

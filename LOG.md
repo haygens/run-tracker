@@ -478,3 +478,23 @@ All 9 planned steps were finished.
     - layout: 473 → 443 ms
     - Largest Contentful Paint: 436 → 442 ms
   - **Conclusion:** all within normal variation. The drop from 98 to 87 is most likely the "Custom throttling" setting (or normal run-to-run variation), not the code. Why logged: so later Lighthouse runs compare like with like. Use the same mode and throttling each time.
+- **UI batch 2 (#1, #2, #17, #19, #22): color tokens, one button system, focus outlines, border contrast, button sizes.** No server changes.
+  - **#1 Color tokens:** every color in `style.css` is now a CSS variable defined once on `:root` (text, muted, surfaces, borders, accent, danger/success/info/warn, disabled, chart, shadows). No color is typed in anywhere else. The page uses the same colors as before. Why: one place to change colors, and dark mode (#8) becomes just a second set of values.
+  - **#2 Buttons:** the five separate button styles are replaced by `.btn` plus `.btn-primary`, `.btn-secondary`, `.btn-danger` and `.btn-sm`. Each has hover, pressed (darker and 1px down), keyboard focus and disabled (grey, "not allowed" cursor, no hover) states.
+    - Primary: Add run / Save changes, Generate plan, Continue.
+    - Secondary: Cancel, Check, Edit, Forget password.
+    - Danger: Delete.
+    - Why Check is now secondary: Generate is the main (and costly) action.
+    - A global `[hidden] { display: none !important }` was added. Why: `.btn` sets its own `display`, which would otherwise show the hidden Cancel and Generate buttons.
+  - **#17 Focus:** one `:focus-visible` outline (2px blue, 2px gap) for everything. The weekly chart used to remove its outline. Now the focused week's whole column gets a blue frame. A mouse click on a button doesn't show the ring.
+  - **#19 Contrast:** field and secondary-button borders went from `#b6bec7` (1.9:1 against white) to `#8c959f` (3.0:1). The Delete border went from `#e5a1a8` (2.1:1) to `#cf222e` (5.4:1).
+  - **#22 Sizes:** normal buttons and inputs are 36px tall, and small buttons (Edit, Delete, Forget password) are 32px, up from about 24px. There are 8px between buttons.
+  - **Testing:** headless Edge over its debugging port, against a test server on port 3123 with a temp copy of `runs-backup.db`, a temp `.env` and a copy of `plans/`. The server and Edge were stopped by PID afterwards. Everything passed:
+    - The variables are defined, and the page background is unchanged.
+    - Every button uses `.btn` (except the plan week toggles from #16). Cancel and Generate stay hidden until they're needed.
+    - The hover, pressed, focus and disabled colors of each kind are exactly as intended (checked with forced states).
+    - Button heights are 36 / 32px, inputs are 36px, and Edit and Delete are 8px apart. Every field border is `#8c959f`.
+    - Tab through all 55 stops on the page (12 chart weeks, "Show as table", every field, every Edit/Delete, the plan form, 15 plan weeks): each shows a visible outline. The one exception was the calendar icon inside the date fields, where Edge draws its own focus ring around the icon, so that's fine too.
+    - Check still works and shows Generate. Edit shows Cancel, the password dialog opens, and Esc closes it without saving and then leaves edit mode.
+    - No console errors apart from the known `favicon.ico` 404. I looked at screenshots of the forms, the runs table, the chart focus, the plan form and the dialog.
+    - `runs.db`, `runs-backup.db` and both saved plans had the same hashes afterwards.

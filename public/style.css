@@ -1,7 +1,54 @@
+/* ---- Colors: every color on the page is defined here, once ---- */
+
+:root {
+  --text: #1f2328;
+  --muted: #59636e;
+  --page-bg: #f6f7f9;
+  --surface: #fff;
+  --surface-subtle: #f6f8fa;
+  --surface-hover: #f3f4f6;
+  --surface-pressed: #e6eaef;
+  --border: #d8dee4;
+  --border-soft: #e5e8eb;
+  --border-faint: #eaeef2;
+  --border-strong: #8c959f; /* form fields and buttons: 3:1 against white */
+
+  --accent: #1f6feb;
+  --accent-hover: #1a5fca;
+  --accent-pressed: #174fa8;
+  --on-accent: #fff;
+  --focus: #1f6feb;
+
+  --danger: #a40e26;
+  --danger-border: #cf222e;
+  --danger-bg: #ffebe9;
+  --danger-bg-pressed: #ffcecb;
+  --success: #116329;
+  --success-bg: #dafbe1;
+  --info: #0a3069;
+  --info-bg: #ddf4ff;
+  --warn-border: #d4a72c;
+  --warn-bg: #fff8c5;
+
+  --disabled-bg: #eaeef2;
+  --disabled-text: #6e7781;
+
+  --chart-bar: #2a78d6;
+  --chart-bar-hover: #4b8fe2;
+  --chart-track: #f2f4f7;
+  --chart-track-hover: #e3e8ee;
+  --chart-grid: #eef0f2;
+  --chart-baseline: #d0d7de;
+
+  --shadow: rgba(31, 35, 40, 0.12);
+  --shadow-strong: rgba(31, 35, 40, 0.2);
+  --backdrop: rgba(31, 35, 40, 0.35);
+}
+
 body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #f6f7f9;
-  color: #1f2328;
+  background: var(--page-bg);
+  color: var(--text);
 }
 
 main {
@@ -20,11 +67,101 @@ h2 {
 }
 
 section {
-  background: #fff;
-  border: 1px solid #d8dee4;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 24px;
+}
+
+/* hidden always hides, even on elements with their own display (like .btn) */
+[hidden] {
+  display: none !important;
+}
+
+/* One keyboard focus outline for everything */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---- Buttons: .btn plus .btn-primary / .btn-secondary / .btn-danger, .btn-sm for small ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.btn-secondary:active:not(:disabled) {
+  background: var(--surface-pressed);
+}
+
+.btn-danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+
+.btn-danger:active:not(:disabled) {
+  background: var(--danger-bg-pressed);
+}
+
+.btn:disabled {
+  background: var(--disabled-bg);
+  color: var(--disabled-text);
+  border-color: var(--disabled-bg);
+  cursor: not-allowed;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
 }
 
 /* Form: fields in one row, button at the end */
@@ -51,11 +188,15 @@ section {
 #run-form select,
 #plan-form input,
 #plan-form select {
+  box-sizing: border-box;
+  height: 36px;
   font: inherit;
   font-weight: normal;
-  padding: 6px 8px;
-  border: 1px solid #b6bec7;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
   width: 115px;
 }
 
@@ -66,31 +207,8 @@ section {
 #run-form .hint {
   font-size: 0.75rem;
   font-weight: normal;
-  color: #59636e;
+  color: var(--muted);
   max-width: 115px;
-}
-
-#run-form button,
-#plan-form button {
-  font: inherit;
-  font-weight: 600;
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  background: #1f6feb;
-  color: #fff;
-  cursor: pointer;
-}
-
-#run-form button:hover,
-#plan-form button:hover {
-  background: #1a5fca;
-}
-
-#run-form button:disabled,
-#plan-form button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 #form-message,
@@ -102,14 +220,14 @@ section {
 
 #form-message.success,
 #plan-message.success {
-  background: #dafbe1;
-  color: #116329;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 #form-message.error,
 #plan-message.error {
-  background: #ffebe9;
-  color: #a40e26;
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 #form-message ul,
@@ -128,12 +246,12 @@ th,
 td {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e8eb;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 th {
   font-size: 0.85rem;
-  color: #59636e;
+  color: var(--muted);
 }
 
 .num {
@@ -142,66 +260,31 @@ th {
 }
 
 tbody tr:hover {
-  background: #f6f8fa;
+  background: var(--surface-subtle);
 }
 
 /* ---- Edit and delete ---- */
 
-#run-form .buttons,
-#plan-form .buttons {
-  display: flex;
-  gap: 8px;
-}
-
-#run-form button.secondary {
-  background: #fff;
-  color: #1f2328;
-  border: 1px solid #b6bec7;
-}
-
-#run-form button.secondary:hover {
-  background: #f3f4f6;
-}
-
 /* Form gets an amber edge while editing, so add vs edit is obvious */
 section:has(#run-form.editing) {
-  border-color: #d4a72c;
-  box-shadow: 0 0 0 2px #fff8c5;
+  border-color: var(--warn-border);
+  box-shadow: 0 0 0 2px var(--warn-bg);
 }
 
 tbody tr.editing,
 tbody tr.editing:hover {
-  background: #fff8c5;
+  background: var(--warn-bg);
 }
 
 td.actions {
   text-align: right;
   white-space: nowrap;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
-.row-button {
-  font: inherit;
-  font-size: 0.8rem;
-  padding: 3px 10px;
-  margin-left: 4px;
-  border: 1px solid #b6bec7;
-  border-radius: 4px;
-  background: #fff;
-  color: #1f2328;
-  cursor: pointer;
-}
-
-.row-button:hover {
-  background: #f3f4f6;
-}
-
-.row-button.delete {
-  color: #a40e26;
-  border-color: #e5a1a8;
-}
-
-.row-button.delete:hover {
-  background: #ffebe9;
+td.actions .btn {
+  margin-left: 8px;
 }
 
 /* Readable by screen readers, invisible on screen */
@@ -220,7 +303,7 @@ h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #59636e;
+  color: var(--muted);
   margin: 0 0 8px;
 }
 
@@ -232,7 +315,7 @@ h3 {
 }
 
 .stat-group {
-  border: 1px solid #e5e8eb;
+  border: 1px solid var(--border-soft);
   border-radius: 6px;
   padding: 12px 14px;
 }
@@ -247,7 +330,7 @@ h3 {
 
 .stat-group dt,
 .pbs dt {
-  color: #59636e;
+  color: var(--muted);
 }
 
 .stat-group dd,
@@ -270,7 +353,7 @@ h3 {
 .stat-note {
   font-size: 0.75rem;
   font-weight: normal;
-  color: #59636e;
+  color: var(--muted);
   margin: 6px 0 0;
 }
 
@@ -294,40 +377,40 @@ h2 .stat-note {
 }
 
 .chart .gridline {
-  stroke: #eef0f2;
+  stroke: var(--chart-grid);
   stroke-width: 1;
 }
 
 .chart .baseline {
-  stroke: #d0d7de;
+  stroke: var(--chart-baseline);
   stroke-width: 1;
 }
 
 .chart .tick {
   font-size: 12px;
-  fill: #59636e;
+  fill: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
 .chart .tick.current {
-  fill: #1f2328;
+  fill: var(--text);
   font-weight: 600;
 }
 
 .chart .value {
   font-size: 12px;
   font-weight: 600;
-  fill: #1f2328;
+  fill: var(--text);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 
 .chart .track {
-  fill: #f2f4f7;
+  fill: var(--chart-track);
 }
 
 .chart .bar {
-  fill: #2a78d6;
+  fill: var(--chart-bar);
 }
 
 .chart .hit {
@@ -335,28 +418,34 @@ h2 .stat-note {
   cursor: default;
 }
 
+/* The focus outline is drawn around the week's column instead (below) */
 .chart .slot {
   outline: none;
+}
+
+.chart .slot:focus-visible .hit {
+  stroke: var(--focus);
+  stroke-width: 2;
 }
 
 /* Hovered or focused week responds: track darkens, bar lightens */
 .chart .slot:hover .track,
 .chart .slot:focus-visible .track {
-  fill: #e3e8ee;
+  fill: var(--chart-track-hover);
 }
 
 .chart .slot:hover .bar,
 .chart .slot:focus-visible .bar {
-  fill: #4b8fe2;
+  fill: var(--chart-bar-hover);
 }
 
 .chart-tooltip {
   position: absolute;
   transform: translate(-50%, -100%);
-  background: #fff;
-  border: 1px solid #d8dee4;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(31, 35, 40, 0.12);
+  box-shadow: 0 2px 8px var(--shadow);
   padding: 6px 10px;
   font-size: 0.85rem;
   white-space: nowrap;
@@ -370,7 +459,7 @@ h2 .stat-note {
 
 .chart-tooltip span,
 .chart-tooltip-dates {
-  color: #59636e;
+  color: var(--muted);
 }
 
 .chart-table {
@@ -379,7 +468,7 @@ h2 .stat-note {
 
 .chart-table summary {
   cursor: pointer;
-  color: #59636e;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -412,31 +501,18 @@ h2 .stat-note {
   margin: 0;
 }
 
-.small-button {
-  font: inherit;
-  font-size: 0.8rem;
-  padding: 4px 10px;
-  border: 1px solid #b6bec7;
-  border-radius: 4px;
-  background: #fff;
-  color: #1f2328;
-  cursor: pointer;
-}
-
-.small-button:hover {
-  background: #f3f4f6;
-}
-
 #password-dialog {
-  border: 1px solid #d8dee4;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px 24px;
   width: 340px;
-  box-shadow: 0 8px 24px rgba(31, 35, 40, 0.2);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--shadow-strong);
 }
 
 #password-dialog::backdrop {
-  background: rgba(31, 35, 40, 0.35);
+  background: var(--backdrop);
 }
 
 #password-form label {
@@ -448,11 +524,15 @@ h2 .stat-note {
 }
 
 #password-form input {
+  box-sizing: border-box;
+  height: 36px;
   font: inherit;
   font-weight: normal;
-  padding: 6px 8px;
-  border: 1px solid #b6bec7;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
 }
 
 #password-message {
@@ -460,44 +540,25 @@ h2 .stat-note {
 }
 
 #password-message.password-error {
-  color: #a40e26;
+  color: var(--danger);
   font-weight: 600;
 }
 
 #password-form .buttons {
-  display: flex;
-  gap: 8px;
   margin-top: 16px;
-}
-
-#password-form button {
-  font: inherit;
-  font-weight: 600;
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  background: #1f6feb;
-  color: #fff;
-  cursor: pointer;
-}
-
-#password-form button.secondary {
-  background: #fff;
-  color: #1f2328;
-  border: 1px solid #b6bec7;
 }
 
 /* ---- Training plan ---- */
 
 #plan-form input:disabled,
 #plan-form select:disabled {
-  background: #f6f8fa;
-  color: #59636e;
+  background: var(--surface-subtle);
+  color: var(--muted);
 }
 
 #plan-message.info {
-  background: #ddf4ff;
-  color: #0a3069;
+  background: var(--info-bg);
+  color: var(--info);
 }
 
 #plan-message details {
@@ -508,8 +569,8 @@ h2 .stat-note {
   white-space: pre-wrap;
   max-height: 240px;
   overflow: auto;
-  background: #fff;
-  color: #1f2328;
+  background: var(--surface);
+  color: var(--text);
   padding: 8px;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -517,7 +578,7 @@ h2 .stat-note {
 
 #plan-check-result {
   margin-top: 16px;
-  border: 1px solid #e5e8eb;
+  border: 1px solid var(--border-soft);
   border-radius: 6px;
   padding: 12px 14px;
   max-width: 640px;
@@ -528,11 +589,11 @@ h2 .stat-note {
 }
 
 .plan-verdict .yes {
-  color: #116329;
+  color: var(--success);
 }
 
 .plan-verdict .no {
-  color: #a40e26;
+  color: var(--danger);
 }
 
 #plan-result {
@@ -552,7 +613,7 @@ h2 .stat-note {
 }
 
 #plan-table tfoot th {
-  color: #1f2328;
+  color: var(--text);
   border-bottom: none;
 }
 
@@ -561,7 +622,7 @@ tr.plan-week {
 }
 
 tr.plan-week:has([aria-expanded="true"]) {
-  background: #f6f8fa;
+  background: var(--surface-subtle);
 }
 
 /* Looks like the plain week number; it's a button so it can carry aria-expanded */
@@ -576,7 +637,7 @@ tr.plan-week:has([aria-expanded="true"]) {
 
 /* Outline the whole row when its button has keyboard focus */
 tr.plan-week:has(.plan-week-toggle:focus-visible) {
-  outline: 2px solid #1f6feb;
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 
@@ -587,13 +648,13 @@ tr.plan-week:has(.plan-week-toggle:focus-visible) {
 /* A week's runs, indented under its row */
 tr.plan-days > td {
   padding: 0 10px 8px 40px;
-  background: #f6f8fa;
+  background: var(--surface-subtle);
 }
 
 tr.plan-days table td {
   padding: 4px 10px;
   font-size: 0.9rem;
-  border-bottom: 1px solid #eaeef2;
+  border-bottom: 1px solid var(--border-faint);
 }
 
 tr.plan-days table tr:hover {
@@ -617,7 +678,7 @@ tr.plan-days table tr:hover {
 #plan-checks ul {
   margin: 2px 0 0 52px;
   padding-left: 16px;
-  color: #a40e26;
+  color: var(--danger);
 }
 
 .check-status {
@@ -632,16 +693,16 @@ tr.plan-days table tr:hover {
 }
 
 .check-status.pass {
-  background: #dafbe1;
-  color: #116329;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .check-status.fail {
-  background: #ffebe9;
-  color: #a40e26;
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .check-status.skip {
-  background: #eaeef2;
-  color: #59636e;
+  background: var(--border-faint);
+  color: var(--muted);
 }
