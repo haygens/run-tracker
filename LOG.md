@@ -631,3 +631,42 @@ All 9 planned steps were finished.
     - **Plan:** the arrow is ▸ / ▾ while the button is still named "Week N", and Expand all / Collapse all open and close every week.
     - **At 1100, 900, 700, 500 and 375px:** no sideways page scroll, cards at least 200px with titles not cut off, the two rows aligned, and the chart fits. The runs table scrolls inside its box from 900px down.
     - No console errors at all (the `favicon.ico` 404 is gone). I looked at full-page screenshots at 1280, 700 and 375px.
+
+## 2026-10-21
+
+- **Hand test of UI batch 6, and the end of the UI and accessibility work.** In the browser, everything passed:
+  - **Look:** the favicon shows in the tab. The card titles are small uppercase. "Personal bests", the plan title and "Rule results" are normal bold headings.
+  - **Form:** Add run and Check line up with their fields. "Time read as 1:05:30 · pace 6:33 /km" for 10 km in 65:30. The "65:" error fits on one line.
+  - **Plan:** the weeks show ▸/▾, and Expand all and Collapse all work.
+  - **Device mode:** at 700px the cards are 2 per row and the chart labels every other week. At 375px the cards are 1 per row, the runs table scrolls inside its box, and the page doesn't scroll sideways.
+  - **Empty states:** with an empty database and an empty plan folder, the dashed messages show for the chart, the runs and the plan. Check hides the "No plan yet" box.
+  - **Console:** no errors at all.
+  - **Lighthouse after batch 6** (Emulated Desktop, on the empty test database): Performance 100, Accessibility 100, Best Practices 100, SEO 100.
+- **Summary of the UI and accessibility work** (6 batches, 2026-10-20 to 2026-10-21). Plain HTML/CSS/JS, no libraries, no server changes.
+  - **Lighthouse, before → after:** Performance 98 → 100, Accessibility 97 → 100, Best Practices 96 → 100, SEO 90 → 100.
+    - The "after" run was on the empty test database. Performance varied between runs (87–98) with "Custom throttling", and a before/after load test showed that wasn't caused by the code.
+  - **Batch 1 (#16):** the plan weeks open with a real button (`aria-expanded`), instead of `aria-expanded` on a table row. This was the only accessibility failure.
+  - **Batch 2 (#1, #2, #17, #19, #22):**
+    - All colors are CSS variables.
+    - One button system (primary / secondary / danger) with hover, pressed, focus and disabled states.
+    - One visible keyboard focus outline, including on the chart weeks.
+    - Field and button borders at 3:1 contrast or better.
+    - Buttons 36px (small 32px) with 8px gaps.
+  - **Batch 3 (#21, #11, #20):**
+    - Messages are always-present live regions (status for success, alert for errors), and the Check verdict is read out.
+    - Short success messages that clear after 5 s, shown where they belong (header, top of the page, under the form).
+    - Icons and "Error:" on messages, and an "Editing" tag on the edited row, so color isn't the only signal.
+  - **Batch 4 (#9, #10):**
+    - Today / Yesterday buttons for the date.
+    - A live preview of how the time was read and the pace, with time errors shown when you leave the field.
+  - **Batch 5 (#6, #5):**
+    - Tinted run-type labels.
+    - Summary cards with one big number each, short date ranges, and personal-best cards (value and run name).
+  - **Batch 6 (#3, #4, #7, #13, #14, head tags):**
+    - Font-size, line-height and spacing scales.
+    - Full-width time notes, and buttons aligned without spacers.
+    - Empty states with a next step.
+    - A layout that works in a narrow window (wrapping cards, tables that scroll inside their box).
+    - Plan week arrows and Expand all / Collapse all.
+    - Viewport tag, meta description and favicon.
+  - **Left for later**, as planned: #8 dark mode, #12 errors next to each field, #15 a timer while a plan generates, #18 arrow-key navigation in the chart.

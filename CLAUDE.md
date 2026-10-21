@@ -130,7 +130,7 @@ Page:
 
 ## UI and accessibility improvements
 
-Reviewed on 2026-10-20 (no changes yet). Lighthouse before (Edge, desktop): Performance 98, Accessibility 97, Best Practices 96, SEO 90.
+Reviewed on 2026-10-20; batches 1–6 done on 2026-10-21. Lighthouse (Edge, desktop), before → after: Performance 98 → 100, Accessibility 97 → 100, Best Practices 96 → 100, SEO 90 → 100.
 
 ### Items
 Look
