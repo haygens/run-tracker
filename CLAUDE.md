@@ -167,7 +167,7 @@ Accessibility
 3. #21, #11, #20
 4. #9, #10
 5. #6, #5
-6. #3, #4, #7, #13, #14, plus the viewport meta tag and a favicon
+6. #3, #4, #7, #13, #14, plus the viewport meta tag, a meta description and a favicon
 
 Later: #8, #12, #15, #18
 

@@ -452,3 +452,4 @@ All 9 planned steps were finished.
   - **Lighthouse before** (Edge, desktop): Performance 98, Accessibility 97, Best Practices 96, SEO 90.
   - **The one accessibility failure:** "ARIA attributes are not used as specified for the element's role" on every `tr.plan-week`, because `aria-expanded` is set on a table row.
   - **Result:** 22 numbered suggestions (look, ease of use, accessibility) and a build order of 6 batches, added to CLAUDE.md under "UI and accessibility improvements". Why: so each batch can be built and checked as its own commit, starting with the Lighthouse failure.
+- **Meta description added to batch 6** of the UI plan in CLAUDE.md. Why: it's the likely reason SEO is 90.
