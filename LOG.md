@@ -532,3 +532,15 @@ All 9 planned steps were finished.
     - Check read out "Realistic: yes. …". A blank race date gave a plan alert and cleared the read-out. Generate then Cancel gave "✕ Error: No plan was generated…" (no model run).
     - A summary request forced to fail (500) showed "✕ Error: Could not load summary: Server returned 500" at the top, with nothing under the form.
     - The only console errors were the blank-date 400, which was triggered on purpose, and the forced 500.
+- **Hand test of UI batch 3** in the browser. Everything passed:
+  - **Error:** "✕ Error: Seconds must be 00-59…" for 25:75, and it was still there after 10 seconds.
+  - **Success:** "✓ Saved · Easy, 5 km, Tue 20 Oct" replaced the error and disappeared after about 5 seconds.
+  - **Edit:** an amber row with the Editing tag. "Save changes" showed "✓ Updated…" and removed the tag.
+  - **Delete and Forget password:** Delete showed "✓ Deleted · …". Forget password showed its message in the header, and it disappeared.
+  - **Plan, on my real (empty) database:**
+    - Check correctly says "Realistic: no", with no baseline and no Generate button.
+    - Clearing the date and pressing Check showed a red "✕ Error" under the plan form.
+    - Generate → Cancel was skipped, because there's no Generate button on the empty database (the automated test covered it).
+  - **Console:** only the known `favicon.ico` 404, and the expected 400 from the blank date.
+  - **Not tested:** the Narrator check, which I skipped.
+  - **Lighthouse after batch 3** (Emulated Desktop, Custom throttling): Performance 87, Accessibility 100, Best Practices 96, SEO 90.
