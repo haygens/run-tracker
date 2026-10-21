@@ -596,3 +596,38 @@ All 9 planned steps were finished.
   - **Console:** only the `favicon.ico` 404.
   - **Lighthouse after batch 5** (Emulated Desktop, Custom throttling): Performance 98, Accessibility 100, Best Practices 96, SEO 90.
   - **Found:** in Lighthouse's narrow preview the 4 summary cards are squeezed ("CURR STRE…" cut off). Batch 6 (#13, narrow-window layout) should fix it.
+- **UI batch 6 (#3, #4, #7, #13, #14, plus head tags and a favicon).** No server changes.
+  - **#3 Typography:**
+    - Font sizes are now a fixed scale of CSS variables: `--text-xs` 0.75rem, `sm` 0.85, `md` 1, `lg` 1.25, `xl` 1.75 and `xxl` 2. No rem size is typed anywhere else.
+    - The body line-height is 1.5.
+    - The small uppercase grey style is now only on the card titles. "Personal bests", the plan title ("Latest saved plan: …") and "Rule results" are normal headings. Why: the long plan title read as a shouty grey label.
+  - **#4 Spacing and form layout:**
+    - Spacing is now a fixed set of steps (`--space-1`…`6`: 4, 8, 12, 16, 24 and 32px) used for every gap, margin and padding. A few odd values were rounded to the nearest step: section padding 20 → 24px, cell padding 10 → 12px.
+    - The time preview and the time-format hint moved to a full-width row under the fields. Before, they were squeezed into the 115px time column. The preview now reads "Time read as 1:05:30 · pace 12:36 /km", and a long error fits on one line.
+    - The add-run and plan buttons line up with the inputs through a `padding-top` of one caption height. The `&nbsp;` spacer elements are gone.
+  - **#7 Empty states**, each with a next step in a dashed box:
+    - Runs: "No runs yet. Add your first one with the form above." The header-only table is hidden.
+    - Chart: "No runs in the last 12 weeks. Runs you add show up here.", shown over the empty bars.
+    - Plan: "No plan yet. Pick a goal and a race date, then press Check." It hides once Check is pressed or a plan is shown.
+  - **#13 Narrow windows** (still desktop-only):
+    - The cards use `auto-fill` with a 200px minimum, so they go 4 → 3 → 2 → 1 per row. Both rows keep the same columns, and no card title is cut off. This fixes the squeezed "CURR STRE…" in Lighthouse's preview.
+    - The runs and plan tables scroll sideways inside their box, and their rows stay on one line. The header and buttons wrap.
+    - The chart labels every other week when its columns are narrow.
+    - The password dialog fits the window.
+  - **#14 Plan weeks:**
+    - Each week number has a ▸ (closed) or ▾ (open) arrow. It's drawn in CSS and hidden from screen readers, so the button is still read as "Week 1".
+    - New "Expand all" and "Collapse all" buttons above the table.
+  - **Head:**
+    - `<meta name="viewport">` and a `<meta name="description">`. The description is for SEO; Lighthouse flagged it as missing.
+    - A favicon, `public/favicon.svg`: a white zig-zag route on the accent blue. Why: it ends the `favicon.ico` 404 that was logged on every load.
+  - **Found while testing:**
+    - At 500px and below the page scrolled sideways, even though the tables were in scrolling boxes. The cause was the hidden screen-reader text in the tables ("Actions" and the "Week " before each number). It uses `position: absolute`, so with no positioned ancestor it was placed against the page and escaped the scrolling box. Fixed with `position: relative` on `.table-scroll`.
+    - At 375px the plan's date column wrapped to four lines per week. The rows now stay on one line and scroll instead.
+  - **Testing:** headless Edge over its debugging port, against two test servers: one with a new empty database and no plans, and one with a temp copy of `runs-backup.db` and a copy of `plans/`. A fresh browser profile was used, and both servers and Edge were stopped by PID afterwards. All 27 checks passed:
+    - **Head and favicon:** both head tags are present. `favicon.svg` is served as `image/svg+xml`, with no `/favicon.ico` request.
+    - **Empty states:** all three show on the empty database, and the plan one hides after Check.
+    - **Typography:** line-height 24px, h1 32px, h2 20px, and uppercase only on the card titles.
+    - **Form:** Add run and Check are at the same height as the inputs, the notes row is full width, and the inline error fits on one line.
+    - **Plan:** the arrow is ▸ / ▾ while the button is still named "Week N", and Expand all / Collapse all open and close every week.
+    - **At 1100, 900, 700, 500 and 375px:** no sideways page scroll, cards at least 200px with titles not cut off, the two rows aligned, and the chart fits. The runs table scrolls inside its box from 900px down.
+    - No console errors at all (the `favicon.ico` 404 is gone). I looked at full-page screenshots at 1280, 700 and 375px.

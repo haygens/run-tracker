@@ -202,6 +202,7 @@ function renderRuns(runs) {
   runsById = new Map(runs.map((run) => [run.id, run]));
   tbody.replaceChildren();
   emptyNote.hidden = runs.length > 0;
+  document.getElementById('runs-table-wrap').hidden = runs.length === 0;
 
   for (const run of runs) {
     const cells = [
@@ -371,6 +372,7 @@ function renderWeekly(weeks) {
   const baseline = margin.top + plotH;
 
   const maxKm = Math.max(...weeks.map((w) => w.distance_km));
+  document.getElementById('weekly-empty').hidden = maxKm > 0;
   const step = maxKm > 0 ? niceStep(maxKm) : 5;
   const top = maxKm > 0 ? Math.ceil(maxKm / step) * step : 4 * step;
   const yFor = (km) => baseline - (km / top) * plotH;
@@ -426,9 +428,12 @@ function renderWeekly(weeks) {
       slot.append(value);
     }
 
-    const dateLabel = svg('text', { x: barX + barW / 2, y: baseline + 18, class: isCurrent ? 'tick current' : 'tick', 'text-anchor': 'middle' });
-    dateLabel.textContent = isCurrent ? 'This week' : shortDate(week.week_start);
-    slot.append(dateLabel);
+    // In a narrow window the labels would run together, so label every other week (counting back from this week)
+    if (slotW >= 64 || (lastIndex - i) % 2 === 0) {
+      const dateLabel = svg('text', { x: barX + barW / 2, y: baseline + 18, class: isCurrent ? 'tick current' : 'tick', 'text-anchor': 'middle' });
+      dateLabel.textContent = isCurrent ? 'This week' : shortDate(week.week_start);
+      slot.append(dateLabel);
+    }
 
     const show = () => showWeekTooltip(week, isCurrent, barX + barW / 2, yFor(week.distance_km), width);
     slot.addEventListener('pointerenter', show);
@@ -740,8 +745,8 @@ function updatePacePreview(withError = false) {
   const km = Number(form.elements.distance_km.value);
   const time = formatDuration(duration.seconds);
   pacePreview.textContent = km > 0 && Number.isFinite(km)
-    ? `${time} · pace ${formatPace(duration.seconds, km)} /km`
-    : `${time} · add a distance for pace`;
+    ? `Time read as ${time} · pace ${formatPace(duration.seconds, km)} /km`
+    : `Time read as ${time} · add a distance for pace`;
 }
 
 function updateFormHelpers() {
@@ -830,6 +835,7 @@ const planGenerateButton = document.getElementById('plan-generate-button');
 const planCheckResult = document.getElementById('plan-check-result');
 const planResult = document.getElementById('plan-result');
 const planTableBody = document.querySelector('#plan-table tbody');
+const planEmpty = document.getElementById('plan-empty');
 
 const GOAL_NAMES = { '5k': '5K', '10k': '10K', half: 'Half marathon', marathon: 'Marathon' };
 const GENERATING_TEXT = 'Generating plan… this takes about 2 minutes.';
@@ -996,12 +1002,22 @@ function renderPlan(data, isLatest) {
 
   renderChecks(data.checks ?? null);
   planResult.hidden = false;
+  planEmpty.hidden = true;
+}
+
+function setWeekOpen(row, open) {
+  row.nextElementSibling.hidden = !open;
+  row.querySelector('.plan-week-toggle').setAttribute('aria-expanded', String(open));
 }
 
 function toggleWeek(row) {
-  const days = row.nextElementSibling;
-  days.hidden = !days.hidden;
-  row.querySelector('.plan-week-toggle').setAttribute('aria-expanded', String(!days.hidden));
+  setWeekOpen(row, row.nextElementSibling.hidden);
+}
+
+for (const [id, open] of [['plan-expand-all', true], ['plan-collapse-all', false]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    for (const row of planTableBody.querySelectorAll('tr.plan-week')) setWeekOpen(row, open);
+  });
 }
 
 // Clicks anywhere on a week row, and Enter/Space on its button (which fire a click)
@@ -1022,6 +1038,7 @@ planForm.addEventListener('submit', async (event) => {
   if (generatingPlan) return;
   clearMessages(planMessages);
   setText('plan-announce', '');
+  planEmpty.hidden = true;
   planCheckResult.hidden = true;
   planGenerateButton.hidden = true;
   try {
@@ -1075,7 +1092,10 @@ async function loadLatestPlan() {
     const res = await fetch('/api/plan/latest');
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     const body = await res.json();
-    if (!body.plan) return;
+    if (!body.plan) {
+      planEmpty.hidden = false;
+      return;
+    }
     renderPlan(body, true);
     planForm.elements.goal.value = body.plan.goal;
     planForm.elements.race_date.value = body.plan.race_date;
