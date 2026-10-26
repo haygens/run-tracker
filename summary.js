@@ -19,9 +19,25 @@ function addDays(ymd, days) {
   return toYmd(d);
 }
 
-// Today on this computer's clock, as YYYY-MM-DD
-function todayLocal() {
-  const d = new Date();
+// APP_TIME_ZONE (e.g. America/Vancouver) sets the time zone for "today" when the server's clock
+// is in another one, like on Vercel (always UTC). Not set: this computer's clock, as before.
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || null;
+const zoneDate = APP_TIME_ZONE && dateFormatIn(APP_TIME_ZONE);
+
+function dateFormatIn(timeZone) {
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  } catch {
+    throw new Error(`APP_TIME_ZONE "${timeZone}" isn't a time zone name like America/Vancouver`);
+  }
+}
+
+// Today as YYYY-MM-DD, in APP_TIME_ZONE or on this computer's clock
+function todayLocal(d = new Date()) {
+  if (zoneDate) {
+    const part = Object.fromEntries(zoneDate.formatToParts(d).map((p) => [p.type, p.value]));
+    return `${part.year}-${part.month}-${part.day}`;
+  }
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;

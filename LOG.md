@@ -688,3 +688,9 @@ All 9 planned steps were finished.
   - **What:** the `claude -p` process now also starts without `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, next to the database path, `.env` path and password it already didn't get.
   - **Why:** once the laptop uses Turso (change 2), those could be in the environment, and the token gives full access to the database. CLAUDE.md's rule is that the model never reads the database or `.env`.
   - **Tested:** `plan.js` on a temp database with a fake `claude` that records which settings it can see: all seven hidden ones were missing, an unrelated variable still came through, and the token isn't in `logs/plan.jsonl`. `test-plan-validate.js` still passes.
+
+- **Deploy to Vercel, change 4: `APP_TIME_ZONE` for "today"** (`summary.js`).
+  - **What:** when the `APP_TIME_ZONE` environment variable is set (e.g. `America/Vancouver`), "today" is the date in that time zone, through `Intl`. Not set: this computer's clock, exactly as before. A wrong name stops the app with `APP_TIME_ZONE "…" isn't a time zone name like America/Vancouver`. It's read from the environment only (it's for Vercel; the laptop doesn't need it).
+  - **Why:** Vercel's clock is UTC and `TZ` is reserved there, so in my evenings the app would think it's tomorrow: wrong "This week"/"This month", streak, chart week and plan dates.
+  - **Tested:** not set, the new and old `todayLocal()` give the same date. With the clock forced to UTC, fixed moments come out right for Vancouver, Auckland and Amsterdam, including New Year's Eve. Through the server, `/api/summary` and the last chart week follow the setting.
+  - **Noticed:** Node's time zone data (tzdata 2026c) keeps `America/Vancouver` on UTC−7 after Nov 1, 2026 (BC staying on daylight time), while this laptop's Windows rules still switch to PST. Not a problem now: on the laptop "today" comes from the Windows clock, which should get the same update.
