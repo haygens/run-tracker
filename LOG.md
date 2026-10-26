@@ -694,3 +694,10 @@ All 9 planned steps were finished.
   - **Why:** Vercel's clock is UTC and `TZ` is reserved there, so in my evenings the app would think it's tomorrow: wrong "This week"/"This month", streak, chart week and plan dates.
   - **Tested:** not set, the new and old `todayLocal()` give the same date. With the clock forced to UTC, fixed moments come out right for Vancouver, Auckland and Amsterdam, including New Year's Eve. Through the server, `/api/summary` and the last chart week follow the setting.
   - **Noticed:** Node's time zone data (tzdata 2026c) keeps `America/Vancouver` on UTC−7 after Nov 1, 2026 (BC staying on daylight time), while this laptop's Windows rules still switch to PST. Not a problem now: on the laptop "today" comes from the Windows clock, which should get the same update.
+
+- **Deploy to Vercel, change 6: Node 24.x and the Turso client** (`package.json`, `package-lock.json`, CLAUDE.md).
+  - **What:** `"engines": { "node": "24.x" }` (was `>=22.13`), and `@libsql/client` 0.18.0 added. Nothing uses it yet; the database layer in change 2 will.
+  - **Why:** Vercel reads the Node version from `engines`, and a `>=` range moves to a new major version on its own; 24.x matches this laptop (v24.22.0). `@libsql/client` is Turso's client.
+  - **Found:** the package's native build doesn't load here ("The specified module could not be found"), because the Visual C++ runtime isn't installed. Its web build (`@libsql/client/web`, plain HTTPS) loads fine, and that's all the app needs: `runs.db` keeps using `node:sqlite`, and Turso is reached over HTTPS from both the laptop and Vercel. CLAUDE.md's change 2 now says so.
+  - **Tested:** the server starts on a temp database, `/api/health` and the page answer, `test-plan-validate.js` passes, and the web client loads.
+  - **Not fixed here:** `npm audit` reports a high-severity issue in `body-parser` (comes with Express). It was there before this change; `npm audit fix` is a separate commit if I want it.

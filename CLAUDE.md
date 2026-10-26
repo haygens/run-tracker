@@ -182,7 +182,7 @@ Planned on 2026-10-26 (Hobby plan, connected to the GitHub repo). Not built yet.
 
 ### Changes
 1. Password from env (`config.js`): use `WRITE_PASSWORD` from `process.env` if set, otherwise read `.env` as now; same refusal for missing or placeholder. Small.
-2. Database layer (`store.js`): async queries that use Turso (`@libsql/client`) when `TURSO_DATABASE_URL` is set, otherwise `runs.db` through `db.js` as now; `server.js`, `plan-core.js` and `plan.js` await it; Turso table created with `CREATE TABLE IF NOT EXISTS`. Medium.
+2. Database layer (`store.js`): async queries that use Turso (`@libsql/client/web`, over HTTPS: the native build needs the Visual C++ runtime, which this laptop doesn't have) when `TURSO_DATABASE_URL` is set, otherwise `runs.db` through `db.js` as now; `server.js`, `plan-core.js` and `plan.js` await it; Turso table created with `CREATE TABLE IF NOT EXISTS`. Medium.
 3. Model env (`plan-core.js`): `modelEnv()` also removes `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Small.
 4. Time zone (`summary.js`): `APP_TIME_ZONE` (e.g. `America/Vancouver`) sets "today" through `Intl`; unset, the laptop clock is used as now. Small.
 5. Plan generation off on Vercel: when `VERCEL` is set, `/api/plan/generate` returns 501 and the page hides "Generate plan" with a note to generate on the laptop. Small.
