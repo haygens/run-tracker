@@ -683,3 +683,8 @@ All 9 planned steps were finished.
   - **Why:** Vercel has no `.env` file; it passes settings as environment variables, so the server stopped on every start there.
   - **Unchanged locally:** with no environment variable, the `.env` file is required as before, and the missing-file, empty and placeholder messages are word for word the same (compared against the old `config.js`). The placeholder is refused from an environment variable too.
   - **Tested:** the old and new `config.js` side by side for a good, placeholder, empty, missing and BOM-prefixed `.env`; an env var only (no `.env`); an env var winning over `.env`; and the real server on a temp database, where only the right password could add a run in each setup.
+
+- **Deploy to Vercel, change 3: the model never gets the Turso settings** (`plan-core.js`).
+  - **What:** the `claude -p` process now also starts without `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, next to the database path, `.env` path and password it already didn't get.
+  - **Why:** once the laptop uses Turso (change 2), those could be in the environment, and the token gives full access to the database. CLAUDE.md's rule is that the model never reads the database or `.env`.
+  - **Tested:** `plan.js` on a temp database with a fake `claude` that records which settings it can see: all seven hidden ones were missing, an unrelated variable still came through, and the token isn't in `logs/plan.jsonl`. `test-plan-validate.js` still passes.

@@ -333,10 +333,11 @@ function buildRetryPrompt(prompt, plan, errors) {
   ].join('\n');
 }
 
-// The model's process gets no database path, .env path or password
+// The model's process gets no database path or Turso settings, .env path or password
 function modelEnv() {
   const env = { ...process.env };
-  for (const key of ['DB_PATH', 'DB_READ_ONLY', 'ENV_FILE', 'WRITE_PASSWORD', 'PLAN_TODAY']) delete env[key];
+  const hidden = ['DB_PATH', 'DB_READ_ONLY', 'TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'ENV_FILE', 'WRITE_PASSWORD', 'PLAN_TODAY'];
+  for (const key of hidden) delete env[key];
   return env;
 }
 
