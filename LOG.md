@@ -670,3 +670,10 @@ All 9 planned steps were finished.
     - Plan week arrows and Expand all / Collapse all.
     - Viewport tag, meta description and favicon.
   - **Left for later**, as planned: #8 dark mode, #12 errors next to each field, #15 a timer while a plan generates, #18 arrow-key navigation in the chart.
+
+## 2026-10-26
+
+- **Planned deploying to Vercel** (Hobby plan, connected to the GitHub repo), so I can log runs from my phone and see them everywhere. Nothing built yet; the plan is in CLAUDE.md under "Deploy to Vercel".
+  - **What breaks on Vercel as it is:** `config.js` stops without a `.env` file, and `runs.db` can't be created or kept (the deployed folder is read-only, and `/tmp` is temporary and per instance). "Today" would be UTC, and `claude -p` and the `plans/`/`logs/` folders aren't available there.
+  - **Why Turso:** it's SQLite, so the table (CHECKs, GLOB, AUTOINCREMENT) and every query work unchanged, where Postgres would mean rewriting them. The free plan is far more than one person's runs need, and the local database is empty, so there's nothing to move.
+  - **Decisions:** one log everywhere (the laptop uses Turso too when its settings are in `.env`; `runs.db` is the offline fallback). Check works online; Generate stays on the laptop; saving plans to Turso is for later.

@@ -175,3 +175,33 @@ Later: #8, #12, #15, #18
 - Plain HTML/CSS/JS, no libraries.
 - Don't change any server behavior unless an item needs it.
 - After each batch, tell me exactly what to check in the browser and whether to rerun Lighthouse.
+
+## Deploy to Vercel
+
+Planned on 2026-10-26 (Hobby plan, connected to the GitHub repo). Not built yet.
+
+### Changes
+1. Password from env (`config.js`): use `WRITE_PASSWORD` from `process.env` if set, otherwise read `.env` as now; same refusal for missing or placeholder. Small.
+2. Database layer (`store.js`): async queries that use Turso (`@libsql/client`) when `TURSO_DATABASE_URL` is set, otherwise `runs.db` through `db.js` as now; `server.js`, `plan-core.js` and `plan.js` await it; Turso table created with `CREATE TABLE IF NOT EXISTS`. Medium.
+3. Model env (`plan-core.js`): `modelEnv()` also removes `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Small.
+4. Time zone (`summary.js`): `APP_TIME_ZONE` (e.g. `America/Vancouver`) sets "today" through `Intl`; unset, the laptop clock is used as now. Small.
+5. Plan generation off on Vercel: when `VERCEL` is set, `/api/plan/generate` returns 501 and the page hides "Generate plan" with a note to generate on the laptop. Small.
+6. `package.json`: `"engines": { "node": "24.x" }` and add `@libsql/client`. Small.
+7. Vercel settings (no code): `WRITE_PASSWORD`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `APP_TIME_ZONE` for Production only; Node.js 24.x. Small.
+8. README "Deploy to Vercel" section, plus LOG.md and CLAUDE.md updates. Small.
+
+### Decisions
+- One log everywhere: the laptop also uses Turso when the Turso settings are in `.env`. `runs.db` is used only when they're not set (offline/local fallback).
+- Training plan: Check works on Vercel; Generate only on the laptop. Saving plans to Turso is left for later.
+
+### Build order
+1. Changes 1, 3, 4, 6 (one commit each)
+2. Change 2, the database layer, tested locally first with a test database
+3. Change 5, plan generation off on Vercel
+4. Change 7, Vercel settings, then deploy
+5. Change 8, the README
+
+### Rules
+- Keep the local version working exactly as now.
+- Test each commit locally before the next.
+- Never commit secrets (Turso token, password).
