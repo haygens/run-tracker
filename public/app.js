@@ -910,8 +910,12 @@ function renderCheck(c) {
   verdict.textContent = `Realistic: ${c.realistic ? 'yes' : 'no'}.`;
   verdict.className = c.realistic ? 'yes' : 'no';
   setText('check-reason', capitalize(c.reason));
+  // Online (Vercel) the server can't run the model: no Generate button, a note instead
+  const generateOff = document.getElementById('check-generate-off');
+  generateOff.hidden = !(c.realistic && c.can_generate === false);
   // The result box isn't a live region, so read the verdict out from here
-  setText('plan-announce', `${verdict.textContent} ${capitalize(c.reason)}`);
+  const note = generateOff.hidden ? '' : ` ${generateOff.textContent}`;
+  setText('plan-announce', `${verdict.textContent} ${capitalize(c.reason)}${note}`);
 
   let earliest;
   if (c.realistic) earliest = `Earliest race date by this rule: ${longDate(c.earliest_race_date)}`;
@@ -920,7 +924,7 @@ function renderCheck(c) {
   setText('check-earliest', earliest);
 
   planCheckResult.hidden = false;
-  planGenerateButton.hidden = !c.realistic;
+  planGenerateButton.hidden = !c.realistic || c.can_generate === false;
 }
 
 // A week's runs, shown under its row when clicked

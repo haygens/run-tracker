@@ -751,3 +751,10 @@ All 9 planned steps were finished.
   - After restarting the server, my added run is still there, so it's stored in Turso, not on the laptop.
   - `plan.js --dry-run` on Turso (10k, 2027-02-23, 3 per week): realistic, week 1 range 12.72–17.2 km (baseline about 14.96 km/week from the Turso test runs), 17 weeks; no model call.
   - Back to normal: `start.bat` says "(database: runs.db)" with my real data.
+- **Deploy to Vercel, change 5: plan generation off online** (`server.js`, `public/index.html`, `public/app.js`).
+  - **What:** when `VERCEL` is set (Vercel sets it automatically), `POST /api/plan/generate` answers 501 "Generating a plan only works on the laptop version of Run Tracker, where the model runs. Check works here." (after the usual password check). `POST /api/plan/check` now also returns `can_generate`; online it's `false`, so a realistic goal shows the note "Generating a plan only works on the laptop version of Run Tracker, where the model runs." instead of the "Generate plan" button, and screen readers hear it with the verdict. Check works online as before.
+  - **Why:** Generate runs the `claude` command with my own login, which only exists on the laptop. Putting the model on a public server would need an API key there, cost money per plan, and take about 2 minutes against Vercel Hobby's 5-minute limit.
+  - **Unchanged on the laptop:** `VERCEL` isn't set, so `can_generate` is `true` and Generate works as before.
+  - **Tested** on test databases, one server as on the laptop and one with `VERCEL=1`:
+    - API: laptop Check says `can_generate: true` and Generate runs (fake model, 502 as before); with `VERCEL=1`, Check says `can_generate: false`, Generate gives 501 with the password and 401 without; adding runs and the latest plan work on both.
+    - Headless Edge: laptop shows Generate for a realistic goal; `VERCEL=1` hides it and shows the note (also read out); for a goal that isn't realistic neither shows. No console errors. `test-plan-validate.js` passes.

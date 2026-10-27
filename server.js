@@ -10,6 +10,11 @@ const plan = require('./plan-core');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Generating a plan runs the claude command with my login, which only the laptop has.
+// Vercel sets VERCEL=1, so online the page offers Check only and generate answers 501.
+const CAN_GENERATE = !process.env.VERCEL;
+const GENERATE_OFF = 'Generating a plan only works on the laptop version of Run Tracker, where the model runs. Check works here.';
+
 // Generating a plan is stopped after 5 minutes (PLAN_TIMEOUT_MS lets tests use less)
 const PLAN_TIMEOUT_MS = Number(process.env.PLAN_TIMEOUT_MS) || 5 * 60 * 1000;
 
@@ -180,7 +185,8 @@ app.post('/api/plan/check', async (req, res) => {
   if (errors) {
     return res.status(400).json({ error: 'Invalid plan request', details: errors });
   }
-  res.json((await checkPlanGoal(request, today)).result);
+  // can_generate tells the page whether to offer "Generate plan"
+  res.json({ ...(await checkPlanGoal(request, today)).result, can_generate: CAN_GENERATE });
 });
 
 // Only one plan is generated at a time (each one runs claude for a minute or two)
@@ -188,6 +194,9 @@ let generating = false;
 
 // Generate a plan with the model: password required, only when the goal is realistic
 app.post('/api/plan/generate', async (req, res) => {
+  if (!CAN_GENERATE) {
+    return res.status(501).json({ error: GENERATE_OFF });
+  }
   const today = planToday();
   const { errors, request } = readPlanRequest(req.body, today);
   if (errors) {
