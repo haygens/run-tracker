@@ -701,3 +701,16 @@ All 9 planned steps were finished.
   - **Found:** the package's native build doesn't load here ("The specified module could not be found"), because the Visual C++ runtime isn't installed. Its web build (`@libsql/client/web`, plain HTTPS) loads fine, and that's all the app needs: `runs.db` keeps using `node:sqlite`, and Turso is reached over HTTPS from both the laptop and Vercel. CLAUDE.md's change 2 now says so.
   - **Tested:** the server starts on a temp database, `/api/health` and the page answer, `test-plan-validate.js` passes, and the web client loads.
   - **Not fixed here:** `npm audit` reports a high-severity issue in `body-parser` (comes with Express). It was there before this change; `npm audit fix` is a separate commit if I want it.
+
+- **Hand test of Vercel step 1 (changes 1, 3, 4, 6)** on the laptop:
+  - `npm install`: up to date, but reported 1 high severity vulnerability (fixed below).
+  - Normal start: add, edit and delete work with my normal password; summary dates are right; Check works.
+  - `WRITE_PASSWORD` from the environment wins over `.env`: my normal password was rejected and `env-test-pass` worked.
+  - `WRITE_PASSWORD='change-me'` from the environment refuses to start with the placeholder message.
+  - `APP_TIME_ZONE='Vancouver'` refuses to start and suggests a proper name.
+  - `start.bat` opens with my real data afterwards.
+  - **Found:** with `APP_TIME_ZONE='Pacific/Auckland'` the server used Tue 27 Oct ("This week" 26–27 Oct), but the date field and the Today/Yesterday buttons still used Mon 26 Oct from the laptop's clock.
+- **Fix: the page takes "today" from the server** (`public/app.js`).
+  - **What:** the page remembers `today` from `/api/summary` (which it already loads) and uses it for the date field's default and the Today/Yesterday buttons. If the date field still shows the old default when the summary arrives, it moves to the server's today; a date I picked stays. Until the summary loads, or if it fails, the browser's clock is used as before.
+  - **Why:** the cards, chart and plan use the server's today, so the form has to use the same one. On Vercel the server's today comes from `APP_TIME_ZONE`, and the phone's or laptop's clock could be on another day near midnight.
+  - **Tested** in headless Edge, with the browser on Mon 26 Oct and a test server in Auckland (Tue 27 Oct): the date field shows 27 Oct with Today pressed, "This week" ends on 27 Oct, Yesterday gives 26 Oct, a picked date stays after a reload of the data, adding a run keeps its date (as before), and Cancel after an edit goes back to 27 Oct. With nothing set, the date field is the laptop's today, as before. No console errors.

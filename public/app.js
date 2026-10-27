@@ -60,8 +60,18 @@ function formatPace(durationSec, distanceKm) {
   return formatDuration(secPerKm);
 }
 
-// A date in local time as YYYY-MM-DD, daysAgo days before today (toISOString would use UTC)
+// The server's today (from /api/summary), so the form agrees with the cards even when the server
+// uses another time zone (APP_TIME_ZONE). Until the summary loads: this browser's clock.
+let serverToday = null;
+
+// A date as YYYY-MM-DD, daysAgo days before today
 function localDate(daysAgo = 0) {
+  if (serverToday) {
+    const d = new Date(`${serverToday}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - daysAgo);
+    return d.toISOString().slice(0, 10);
+  }
+  // Local time, not toISOString: that would use UTC
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -316,7 +326,13 @@ async function loadSummary() {
   try {
     const res = await fetch('/api/summary');
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    renderSummary(await res.json());
+    const summary = await res.json();
+    const oldToday = todayLocal();
+    serverToday = summary.today;
+    // A new-run date still on the old today moves to the server's today; a date you picked stays
+    if (!editingId && form.elements.date.value === oldToday) form.elements.date.value = todayLocal();
+    updateDateShortcuts();
+    renderSummary(summary);
   } catch (err) {
     showMessage(loadMessages, 'error', `Could not load summary: ${err.message}`);
   }
