@@ -121,14 +121,9 @@ function baselineWindow(today) {
   return { start: addDays(thisMonday, -7 * BASELINE_WEEKS), end: addDays(thisMonday, -1) };
 }
 
-// Runs in the window, oldest first. db is the db.js module (read-only for plan.js).
-function baselineRuns(db, window) {
-  return db
-    .prepare(
-      `SELECT id, date, distance_km, duration_sec, run_type, name
-         FROM runs WHERE date BETWEEN ? AND ? ORDER BY date, id`,
-    )
-    .all(window.start, window.end);
+// Runs in the window, oldest first. store is the store.js module (read-only for plan.js).
+function baselineRuns(store, window) {
+  return store.runsBetween(window.start, window.end);
 }
 
 function median(sorted) {

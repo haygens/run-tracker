@@ -64,7 +64,7 @@ You need Windows PowerShell and about 5 minutes.
    ```powershell
    npm start
    ```
-   You should see `Run Tracker listening on http://localhost:3000`. Leave this window open. Press **Ctrl+C** to stop the server.
+   You should see `Run Tracker listening on http://localhost:3000 (database: runs.db)`. Leave this window open. Press **Ctrl+C** to stop the server.
 6. **Open http://localhost:3000** in your browser.
 
 The database file `runs.db` is created on first start, next to the code. It's gitignored too. To back it up, copy `runs.db` while the server is stopped.

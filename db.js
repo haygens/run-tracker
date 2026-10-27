@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { RUN_TYPES } = require('./validate');
+const { runsTableSql, RUNS_INDEX_SQL } = require('./schema');
 
 // Single-file database next to the code (gitignored via *.db).
 // DB_PATH can point somewhere else, e.g. a throwaway file for testing.
@@ -12,21 +13,9 @@ const READ_ONLY = process.env.DB_READ_ONLY === '1';
 
 const db = new DatabaseSync(DB_PATH, { readOnly: READ_ONLY });
 
-// CHECK constraints are a safety net; the API validates first and returns clear 400s.
-// The run_type list comes from validate.js so the two can't drift apart.
+// The table definition is in schema.js, shared with Turso
 function createRunsTable(name) {
-  const typeList = RUN_TYPES.map((t) => `'${t}'`).join(', ');
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS ${name} (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      date         TEXT    NOT NULL CHECK (date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-      distance_km  REAL    NOT NULL CHECK (distance_km > 0),
-      elevation_m  INTEGER NOT NULL DEFAULT 0 CHECK (elevation_m >= 0),
-      duration_sec INTEGER NOT NULL CHECK (duration_sec > 0),
-      run_type     TEXT    NOT NULL CHECK (run_type IN (${typeList})),
-      name         TEXT
-    )
-  `);
+  db.exec(runsTableSql(name));
 }
 
 // SQLite can't change a CHECK constraint in place. If the existing table was created
@@ -69,7 +58,7 @@ if (!READ_ONLY) {
   migrateAddName();
   migrateRunTypes();
   createRunsTable('runs');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_runs_date ON runs (date)');
+  db.exec(RUNS_INDEX_SQL);
 }
 
 module.exports = db;

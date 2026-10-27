@@ -157,12 +157,13 @@ async function main() {
   const today = process.env.PLAN_TODAY || todayLocal();
   const { goal, raceDate, runsPerWeek, dryRun } = readArgs(process.argv.slice(2), today);
 
-  // Same db module the server uses, opened read-only so this script can never change runs.db
+  // Same store the server uses (runs.db, or Turso when its settings are present),
+  // read-only so this script can never change runs.db or set up Turso's table
   process.env.DB_READ_ONLY = '1';
   const window = baselineWindow(today);
   let runs;
   try {
-    runs = baselineRuns(require('./db'), window);
+    runs = await baselineRuns(require('./store'), window);
   } catch (err) {
     console.error(`Cannot read runs from the database: ${err.message}`);
     console.error('Start the server once (npm start) to create or update the database, then try again.');

@@ -62,10 +62,37 @@ function loadWritePassword() {
   return password;
 }
 
+// Turso (hosted SQLite). Same names the Vercel Marketplace integration sets.
+// Neither set: the app uses runs.db, as before. Only one set is a mistake, so refuse.
+function loadTurso() {
+  const url = setting('TURSO_DATABASE_URL');
+  const authToken = setting('TURSO_AUTH_TOKEN');
+  if (!url && !authToken) return { url: null, authToken: null };
+
+  if (!url || !authToken) {
+    refuseToStart([
+      `${url ? 'TURSO_AUTH_TOKEN' : 'TURSO_DATABASE_URL'} is missing, but ${url ? 'TURSO_DATABASE_URL' : 'TURSO_AUTH_TOKEN'} is set`,
+      'Set both to use Turso, or remove both to use runs.db on this computer.',
+    ]);
+  }
+  // The app talks to Turso over HTTPS; a local file is DB_PATH's job
+  if (!/^(libsql|https):\/\//.test(url)) {
+    refuseToStart([
+      'TURSO_DATABASE_URL must start with libsql:// or https:// (copy it from the Turso dashboard)',
+      'For a database file on this computer, leave the Turso settings out and use DB_PATH.',
+    ]);
+  }
+  return { url, authToken };
+}
+
+let writePassword = null;
+
 module.exports = {
-  WRITE_PASSWORD: loadWritePassword(),
-  // Turso (hosted SQLite). Same names the Vercel Marketplace integration sets.
-  // Not set: the app uses runs.db, as before.
-  TURSO_DATABASE_URL: setting('TURSO_DATABASE_URL'),
-  TURSO_AUTH_TOKEN: setting('TURSO_AUTH_TOKEN'),
+  // Checked when first used: the server reads it at startup, so it still refuses to start
+  // without one. plan.js never reads it, so it can use the Turso settings without a password.
+  get WRITE_PASSWORD() {
+    writePassword ??= loadWritePassword();
+    return writePassword;
+  },
+  TURSO: loadTurso(),
 };

@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
 const { WRITE_PASSWORD } = require('./config'); // exits with a clear message if .env isn't set up
-const db = require('./db');
+const store = require('./store'); // runs.db, or Turso when its settings are present
 const { validateRun } = require('./validate');
 const { summarize, weeklyTotals, todayLocal } = require('./summary');
 const plan = require('./plan-core');
@@ -55,43 +55,33 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Quick check that the server and database are up
-app.get('/api/health', (req, res) => {
-  const { count } = db.prepare('SELECT COUNT(*) AS count FROM runs').get();
-  res.json({ status: 'ok', runs: count });
+app.get('/api/health', async (req, res) => {
+  res.json({ status: 'ok', runs: await store.countRuns() });
 });
 
 // List runs, newest first (id breaks ties for runs on the same day)
-app.get('/api/runs', (req, res) => {
-  const runs = db.prepare('SELECT * FROM runs ORDER BY date DESC, id DESC').all();
-  res.json(runs);
+app.get('/api/runs', async (req, res) => {
+  res.json(await store.listRuns());
 });
 
 // Add a run
-app.post('/api/runs', (req, res) => {
+app.post('/api/runs', async (req, res) => {
   const { errors, run } = validateRun(req.body);
   if (errors) {
     return res.status(400).json({ error: 'Invalid run', details: errors });
   }
 
-  const result = db.prepare(`
-    INSERT INTO runs (date, distance_km, elevation_m, duration_sec, run_type, name)
-    VALUES (:date, :distance_km, :elevation_m, :duration_sec, :run_type, :name)
-  `).run(run);
-
-  const created = db.prepare('SELECT * FROM runs WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(created);
+  res.status(201).json(await store.addRun(run));
 });
 
 // All-time totals, this week/month, personal bests and current streak
-app.get('/api/summary', (req, res) => {
-  const runs = db.prepare('SELECT * FROM runs').all();
-  res.json(summarize(runs));
+app.get('/api/summary', async (req, res) => {
+  res.json(summarize(await store.allRuns()));
 });
 
 // Km per week for the last 12 weeks, oldest first (for the chart)
-app.get('/api/weekly', (req, res) => {
-  const runs = db.prepare('SELECT * FROM runs').all();
-  res.json(weeklyTotals(runs));
+app.get('/api/weekly', async (req, res) => {
+  res.json(weeklyTotals(await store.allRuns()));
 });
 
 // "12" -> 12; anything that isn't a positive whole number -> null
@@ -100,7 +90,7 @@ function parseId(text) {
 }
 
 // Edit a run (all fields are replaced, same rules as adding)
-app.put('/api/runs/:id', (req, res) => {
+app.put('/api/runs/:id', async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {
     return res.status(400).json({ error: 'Run id must be a positive whole number' });
@@ -111,28 +101,21 @@ app.put('/api/runs/:id', (req, res) => {
     return res.status(400).json({ error: 'Invalid run', details: errors });
   }
 
-  const result = db.prepare(`
-    UPDATE runs
-    SET date = :date, distance_km = :distance_km, elevation_m = :elevation_m,
-        duration_sec = :duration_sec, run_type = :run_type, name = :name
-    WHERE id = :id
-  `).run({ ...run, id });
-
-  if (result.changes === 0) {
+  const updated = await store.updateRun(id, run);
+  if (!updated) {
     return res.status(404).json({ error: `Run ${id} not found` });
   }
-  res.json(db.prepare('SELECT * FROM runs WHERE id = ?').get(id));
+  res.json(updated);
 });
 
 // Delete a run
-app.delete('/api/runs/:id', (req, res) => {
+app.delete('/api/runs/:id', async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {
     return res.status(400).json({ error: 'Run id must be a positive whole number' });
   }
 
-  const result = db.prepare('DELETE FROM runs WHERE id = ?').run(id);
-  if (result.changes === 0) {
+  if (!(await store.deleteRun(id))) {
     return res.status(404).json({ error: `Run ${id} not found` });
   }
   res.status(204).end();
@@ -156,9 +139,9 @@ function readPlanRequest(body, today) {
 }
 
 // Baseline from the last 4 full weeks and the realism check. Plain code, no model.
-function checkPlanGoal(request, today) {
+async function checkPlanGoal(request, today) {
   const window = plan.baselineWindow(today);
-  const b = plan.computeBaseline(plan.baselineRuns(db, window), window);
+  const b = plan.computeBaseline(await plan.baselineRuns(store, window), window);
   const c = plan.checkGoal(request.goal, request.raceDate, today, b.avgKmPerWeek);
   const result = {
     goal: request.goal,
@@ -191,13 +174,13 @@ function checkPlanGoal(request, today) {
 }
 
 // Baseline and Realistic yes/no. Public and free: never calls the model.
-app.post('/api/plan/check', (req, res) => {
+app.post('/api/plan/check', async (req, res) => {
   const today = planToday();
   const { errors, request } = readPlanRequest(req.body, today);
   if (errors) {
     return res.status(400).json({ error: 'Invalid plan request', details: errors });
   }
-  res.json(checkPlanGoal(request, today).result);
+  res.json((await checkPlanGoal(request, today)).result);
 });
 
 // Only one plan is generated at a time (each one runs claude for a minute or two)
@@ -214,14 +197,14 @@ app.post('/api/plan/generate', async (req, res) => {
     return res.status(409).json({ error: 'A plan is already being generated. Wait for it to finish, then try again.' });
   }
 
-  const { b, c, result: check } = checkPlanGoal(request, today);
-  if (!c.realistic) {
-    return res.status(400).json({ error: `This goal is not realistic: ${check.reason}`, check });
-  }
-
+  // Taken before the check: it reads the database (async), and a second request must not slip in meanwhile
   generating = true;
   let result;
   try {
+    const { b, c, result: check } = await checkPlanGoal(request, today);
+    if (!c.realistic) {
+      return res.status(400).json({ error: `This goal is not realistic: ${check.reason}`, check });
+    }
     result = await plan.generatePlan({ ...request, today, b, timeoutMs: PLAN_TIMEOUT_MS });
   } finally {
     generating = false;
@@ -281,5 +264,5 @@ app.listen(PORT, (err) => {
     }
     process.exit(1);
   }
-  console.log(`Run Tracker listening on http://localhost:${PORT}`);
+  console.log(`Run Tracker listening on http://localhost:${PORT} (database: ${store.backendName})`);
 });

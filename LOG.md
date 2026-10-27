@@ -731,3 +731,17 @@ All 9 planned steps were finished.
   - **Test database:** `run-tracker-test` in AWS us-west-2 (Oregon). Its settings (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `WRITE_PASSWORD='test-only-pass'`) are in `C:\Users\School\turso-test.env`, outside the project, so they can't be committed. Tests point at it with `ENV_FILE`.
   - **Token incident:** my first token was accidentally shown in a screenshot, so I invalidated all tokens for this database and created a new one. The new token was never shown.
   - **Region decision:** I'm on the west coast and the laptop will use Turso too, so the database is in Oregon instead of us-east-1. When deploying, the Vercel function goes to Portland (`pdx1`) to match (change 7: `"regions": ["pdx1"]` in `vercel.json`; Hobby allows one region).
+- **Deploy to Vercel, change 2: the database layer** (`store.js`, `schema.js`, `config.js`, `db.js`, `server.js`, `plan-core.js`, `plan.js`, README).
+  - **What:** every query now goes through `store.js`, a small set of async functions (count, list, all, get, add, update, delete, runs between two dates). With `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` set (environment or `.env`), it uses Turso over HTTPS (`@libsql/client/web`); otherwise `runs.db` through `db.js`, unchanged (same file, `DB_PATH`, migrations, read-only mode for `plan.js`). Both run the same SQL. The server's routes, the plan Check and `plan.js` `await` it.
+  - **Table:** the table definition moved to `schema.js`, so `runs.db` and Turso get exactly the same table (CHECKs included). On Turso it's created with `CREATE TABLE IF NOT EXISTS` on first use; the old `runs.db` migrations aren't needed there. With Turso, no `runs.db` file is opened or created.
+  - **Settings checks** (`config.js`): only one of the two Turso settings set, or a URL that isn't `libsql://` or `https://`, refuses to start with a clear message. The password is now checked when the server first reads it (still at startup), so `plan.js` works without a password, as before.
+  - **Generate lock:** the one-at-a-time lock is now taken before the Check (which reads the database and is now async), so a second request can't slip in while the first is still checking.
+  - **Startup line:** `Run Tracker listening on http://localhost:3000 (database: runs.db)` (or `Turso`), so I can see which one is used. README updated to match.
+  - **Tested** (my real `runs.db` was never opened: same checksum and timestamp before and after):
+    - The same 34 API requests (add, edit, delete, every 400/401/404, summary, chart, plan Check, Generate with a fake model, latest plan) against the old code on a fresh `runs.db`, the new code on a fresh `runs.db`, and the new code on the Turso test database: all 34 responses identical, twice on Turso (the second time after dropping its table, so it was created from scratch).
+    - `plan.js --dry-run`: the same output for old code, new code on `runs.db` (also with no `.env` at all) and Turso. A missing `runs.db` still gives the old message and creates no file.
+    - An old-format database (copy of `runs-backup.db`, before runs had names) is migrated exactly as before.
+    - Refusals for a URL without a token, a token without a URL, a `file:` URL, and Turso settings without a password.
+    - A wrong token: the API answers 500 "Something went wrong on the server", the page still loads, and the server keeps running.
+    - Three Generate requests at once on Turso: one ran, two got 409.
+    - The Turso token appears in none of the 21 test logs and outputs.
