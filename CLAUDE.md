@@ -178,7 +178,7 @@ Later: #8, #12, #15, #18
 
 ## Deploy to Vercel
 
-Planned on 2026-10-26 (Hobby plan, connected to the GitHub repo). Changes 1, 3, 4 and 6 done on 2026-10-26; changes 2 and 5 on 2026-10-27.
+Planned on 2026-10-26 (Hobby plan, connected to the GitHub repo). Changes 1, 3, 4 and 6 done on 2026-10-26; changes 2, 5 and 7 (`vercel.json`) on 2026-10-27.
 
 ### Changes
 1. Password from env (`config.js`): use `WRITE_PASSWORD` from `process.env` if set, otherwise read `.env` as now; same refusal for missing or placeholder. Small.

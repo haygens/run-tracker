@@ -763,3 +763,8 @@ All 9 planned steps were finished.
   - `VERCEL=1`: the same Check → Realistic yes, no Generate button, the note "Generating a plan only works on the laptop version…". Marathon / 2026-12-01 → Realistic no, no button, no note. Adding a run with `test-only-pass` still works.
   - `POST /api/plan/generate` with the right password while `VERCEL=1` → 501 with the "only works on the laptop version" message; no model call.
   - Back to normal: `start.bat` says "(database: runs.db)" with my real data.
+- **Deploy to Vercel, change 7: `vercel.json`** (region).
+  - **What:** `vercel.json` with `"regions": ["pdx1"]`, so the Vercel function runs in Portland, next to the Turso databases in Oregon, instead of the default Washington, D.C. (`iad1`). Hobby allows one region.
+  - **Nothing else needed in code:** Vercel runs `server.js` as an Express app (`app.listen` is supported), serves `public/` from its CDN, takes Node 24.x from `engines`, and the settings come from its environment variables (changes 1–6). The settings themselves are set in the Vercel dashboard, not in the repo.
+  - **Rehearsal on the laptop** of the production setup: no `.env` file, all settings as environment variables, `VERCEL=1`, the clock forced to UTC, `APP_TIME_ZONE=America/Vancouver`, the Turso test database. It started with "(database: Turso)"; health, the page, `app.js` and the favicon answered; Check worked with `can_generate: false`; Generate gave 501. At 19:52 in Vancouver (already 27 Oct in UTC) the server's today was 26 Oct, as it should be.
+  - **No data to move:** my `runs.db` has 0 runs (counted read-only), so the laptop can switch to the production database without losing anything.
