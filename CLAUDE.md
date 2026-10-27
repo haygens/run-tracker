@@ -1,12 +1,14 @@
 # Run Tracker
 
 Personal app for logging my runs and tracking progress over time.
-Runs locally on my laptop for now (desktop browser only, no mobile layout needed).
-Deploying online and linking it from my portfolio comes later, after the first version is due.
+Runs on my laptop and online at https://run-tracker-six-omega.vercel.app (Vercel Hobby + Turso, deployed 2026-10-26).
+Made for a desktop browser; it fits and works on my phone, but no separate mobile layout is needed.
+Linking it from my portfolio comes later.
 
 ## Stack
 - Node.js + Express REST API
-- SQLite database (single file, gitignored)
+- SQLite database: Turso (hosted, AWS us-west-2 Oregon) when TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are set, which they are online and on my laptop (one log everywhere); otherwise a local runs.db file (gitignored)
+- Hosted on Vercel (Hobby), function region Portland (pdx1); see "Deploy to Vercel" below
 - Plain HTML/CSS/JS front end served by Express (no framework)
 - Developed on Windows; give PowerShell commands, numbered and copy-paste ready
 
@@ -37,7 +39,7 @@ Display:
 - GET    /api/health        quick check that the server and database are up (returns status and run count)
 
 GET endpoints are public so a portfolio page can read them later.
-Auth is a single password (WRITE_PASSWORD) stored in a .env file (gitignored; .env.example is the committed template), sent in the X-Password request header. Wrong or missing password on a write returns 401. The server refuses to start if .env or the password is missing, or still the placeholder.
+Auth is a single password (WRITE_PASSWORD), sent in the X-Password request header. On the laptop it's in a .env file (gitignored; .env.example is the committed template); on Vercel it's an environment variable (a separate, strong password). Wrong or missing password on a write returns 401. The server refuses to start if the password is missing or still the placeholder.
 The page asks for the password on the first add/edit/delete and remembers it for that browser tab only (sessionStorage), with a "Forget password" button.
 Keep it simple: no user accounts, no login system.
 
@@ -66,7 +68,7 @@ Day 3 — finish
 9. Final LOG.md entry
 
 Later (not part of this deadline)
-- Deploy to a host that can run Node (GitHub Pages cannot)
+- ~~Deploy to a host that can run Node~~: done, on Vercel (2026-10-26)
 - Portfolio widget reading /api/summary
 
 ## Rules
@@ -178,7 +180,7 @@ Later: #8, #12, #15, #18
 
 ## Deploy to Vercel
 
-Planned on 2026-10-26 (Hobby plan, connected to the GitHub repo). Changes 1, 3, 4 and 6 done on 2026-10-26; changes 2, 5 and 7 (`vercel.json`) on 2026-10-27.
+Deployed on 2026-10-26: https://run-tracker-six-omega.vercel.app (Hobby plan, connected to the GitHub repo; every push to main deploys). All 8 changes are done; the README's "Deploy to Vercel" section describes the setup.
 
 ### Changes
 1. Password from env (`config.js`): use `WRITE_PASSWORD` from `process.env` if set, otherwise read `.env` as now; same refusal for missing or placeholder. Small.

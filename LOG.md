@@ -724,9 +724,6 @@ All 9 planned steps were finished.
   - With `APP_TIME_ZONE=Pacific/Auckland` (test database): the date field showed tomorrow with Today pressed; Yesterday gave my laptop's today; "This week" ended on the same day; a date I picked stayed after adding a run; Edit → Cancel went back to the server's today.
   - Back to normal: `start.bat` shows my real data, and the date field is my laptop's today.
   - Next: step 2 (the database layer), once I've created the Turso test database.
-
-## 2026-10-27
-
 - **Turso test database and region** (CLAUDE.md).
   - **Test database:** `run-tracker-test` in AWS us-west-2 (Oregon). Its settings (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `WRITE_PASSWORD='test-only-pass'`) are in `C:\Users\School\turso-test.env`, outside the project, so they can't be committed. Tests point at it with `ENV_FILE`.
   - **Token incident:** my first token was accidentally shown in a screenshot, so I invalidated all tokens for this database and created a new one. The new token was never shown.
@@ -768,3 +765,19 @@ All 9 planned steps were finished.
   - **Nothing else needed in code:** Vercel runs `server.js` as an Express app (`app.listen` is supported), serves `public/` from its CDN, takes Node 24.x from `engines`, and the settings come from its environment variables (changes 1–6). The settings themselves are set in the Vercel dashboard, not in the repo.
   - **Rehearsal on the laptop** of the production setup: no `.env` file, all settings as environment variables, `VERCEL=1`, the clock forced to UTC, `APP_TIME_ZONE=America/Vancouver`, the Turso test database. It started with "(database: Turso)"; health, the page, `app.js` and the favicon answered; Check worked with `can_generate: false`; Generate gave 501. At 19:52 in Vancouver (already 27 Oct in UTC) the server's today was 26 Oct, as it should be.
   - **No data to move:** my `runs.db` has 0 runs (counted read-only), so the laptop can switch to the production database without losing anything.
+- **Deployed to Vercel.** Live at https://run-tracker-six-omega.vercel.app
+  - **Production database:** a separate Turso database `run-tracker` (Oregon), so `run-tracker-test` stays for testing. Its URL and token went into my real `.env` with the hidden `Read-Host` method (the token was never shown), and the laptop now says "(database: Turso)": one log everywhere.
+  - **Vercel:** imported the repo (Hobby, Express preset). I skipped the Turso Marketplace "Add" button, because it would have made a second database. Four Production-only environment variables: `APP_TIME_ZONE=America/Vancouver` and `TURSO_DATABASE_URL` as Config, `WRITE_PASSWORD` (a new, strong one) and `TURSO_AUTH_TOKEN` as Secret.
+  - **First deploy:** 500 `FUNCTION_INVOCATION_FAILED`, as expected with no settings yet. After adding them, I redeployed.
+  - **Checked after the redeploy**, all passed:
+    - `/api/health` → `{"status":"ok","runs":1}`.
+    - The live page shows the laptop's run, the favicon, today's Vancouver date, and "No plan yet".
+    - A run added online appears on the laptop; a run deleted on the laptop disappears online.
+    - A wrong password online is refused.
+    - On my phone the page fits the screen, and a run added there appears on the laptop.
+    - Check works online. Vercel Logs show no errors since the redeploy.
+  - Deleted all test runs afterwards.
+- **Deploy to Vercel, change 8: README and CLAUDE.md** (docs only).
+  - **README:** a "Deploy to Vercel" section based on what I actually did: the live URL, how it's set up (Turso `run-tracker` in Oregon, function in `pdx1`, four Production-only variables and their types, what not to set, how pushes and previews deploy), the deploy steps (database and token, the hidden `Read-Host` lines for `.env`, import with the Express preset and without the Marketplace Add button, variables, redeploy, checks), and how to change a setting or token. Also: the intro mentions the live version; setup says how the laptop joins the same database; the training plan says only Check works online; new troubleshooting lines for the Turso settings and `FUNCTION_INVOCATION_FAILED`; known limitations updated (public reads, HTTPS online, "today" from `APP_TIME_ZONE`, plans laptop-only, works on a phone); new testing variables (`TURSO_*`, `WRITE_PASSWORD`, `APP_TIME_ZONE`, `VERCEL`); `store.js`, `schema.js` and `vercel.json` in the file list.
+  - **CLAUDE.md:** says the app is deployed (live URL, Vercel Hobby + Turso), the stack (Turso when its settings are set, else `runs.db`; Vercel in `pdx1`), the password from `.env` on the laptop or an environment variable on Vercel, "Deploy" crossed off under Later, and all 8 deploy changes done.
+  - **Date fix:** I had headed some of today's entries "2026-10-27" a day early (it was still the 26th in Vancouver); they're now under 2026-10-26, and CLAUDE.md says 2026-10-26.

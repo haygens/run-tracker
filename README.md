@@ -1,6 +1,8 @@
 # Run Tracker
 
-A small personal app for logging runs and tracking progress over time. It runs on your own computer: a Node.js + Express server with a SQLite database, and a plain HTML/CSS/JS page (no framework, no chart library).
+A small personal app for logging runs and tracking progress over time: a Node.js + Express server with a SQLite database, and a plain HTML/CSS/JS page (no framework, no chart library).
+
+It runs on your own computer, and online at **https://run-tracker-six-omega.vercel.app** (Vercel, with the runs in a hosted Turso database). With the Turso settings in `.env`, the laptop and the website share the same runs. See [Deploy to Vercel](#deploy-to-vercel).
 
 ## What it does
 
@@ -69,6 +71,8 @@ You need Windows PowerShell and about 5 minutes.
 
 The database file `runs.db` is created on first start, next to the code. It's gitignored too. To back it up, copy `runs.db` while the server is stopped.
 
+To use the same runs as the website instead, add the Turso settings to `.env` (see [Deploy to Vercel](#deploy-to-vercel)). The start line then says `(database: Turso)`, and `runs.db` is no longer used.
+
 `npm run dev` does the same as `npm start`, but restarts the server whenever you save a code file.
 
 ## Starting it by double-click (start.bat)
@@ -118,6 +122,8 @@ Everything on the page (summary, chart and table) updates straight away after ea
 ## Training plan (plan.js)
 
 Makes a week-by-week plan for a race from your last 4 full weeks of runs. Use it from the **Training plan** section at the bottom of the page, or from PowerShell. Either way it needs the `claude` command (Claude Code) to be installed and signed in.
+
+On the website, only **Check** works. Generating a plan needs `claude`, which only the laptop has, so online a realistic goal shows "Generating a plan only works on the laptop version…" instead of the button. Plans are saved in `plans/` on the laptop, so the website shows "No plan yet".
 
 **On the page:**
 1. Pick a goal, a race date and runs per week, then press **Check**. Check is free (no model). It shows your baseline and whether the goal is realistic, and why.
@@ -191,6 +197,55 @@ Example (PowerShell):
 Invoke-RestMethod http://localhost:3000/api/summary
 ```
 
+## Deploy to Vercel
+
+The live version is **https://run-tracker-six-omega.vercel.app**, on Vercel's free Hobby plan. It's the same code as the laptop version; settings decide how it behaves.
+
+**How it's set up:**
+- **Runs:** in a Turso database (hosted SQLite) named `run-tracker`, in AWS us-west-2 (Oregon). The laptop uses the same database through `.env`, so there's one log everywhere. A second database, `run-tracker-test`, is only for testing.
+- **Server:** Vercel runs `server.js` as one function, in Portland (`pdx1`, set in `vercel.json`) to be close to the database. The page in `public/` is served from Vercel's CDN.
+- **Settings:** Vercel environment variables, for **Production only**. There's no `.env` on Vercel.
+
+  | Variable | Type | Value |
+  |---|---|---|
+  | `WRITE_PASSWORD` | Secret | The password for adding, editing and deleting online (a separate, strong one) |
+  | `TURSO_DATABASE_URL` | Config | `libsql://run-tracker-….turso.io` (the production database) |
+  | `TURSO_AUTH_TOKEN` | Secret | A read/write token for that database |
+  | `APP_TIME_ZONE` | Config | `America/Vancouver`, so "today" is my date and not UTC's |
+
+  Don't set `VERCEL` (Vercel sets it, and it turns plan generation off), `TZ`, `PORT`, `DB_PATH` or `ENV_FILE`.
+- **Updates:** every push to `main` deploys to production. Pushes to other branches get preview deployments without the settings, so they don't start and never touch the real runs.
+
+**How it was deployed:**
+1. In the Turso dashboard, create the database `run-tracker` in AWS us-west-2 (Oregon), and a read/write token for it. Don't take screenshots of the token.
+2. Add the URL and token to the laptop's `.env` without showing the token. Run these one at a time in the project folder, pasting at each prompt:
+   ```powershell
+   $url = Read-Host "Turso database URL (libsql://...)"
+   ```
+   ```powershell
+   $secure = Read-Host "Turso token" -AsSecureString
+   ```
+   ```powershell
+   $token = [System.Net.NetworkCredential]::new("", $secure).Password
+   ```
+   ```powershell
+   [IO.File]::AppendAllText("$PWD\.env", "`nTURSO_DATABASE_URL='$url'`nTURSO_AUTH_TOKEN='$token'`n", (New-Object Text.UTF8Encoding $false))
+   ```
+   ```powershell
+   Remove-Variable url, secure, token; Set-Clipboard -Value ' '
+   ```
+   `npm start` should now say `(database: Turso)`.
+3. On vercel.com, **Add New… → Project**, import the GitHub repo, keep the **Express** preset and deploy. Don't use the Turso Marketplace **Add** button: it creates another database. The first deployment fails with `500 FUNCTION_INVOCATION_FAILED` because there are no settings yet.
+4. In **Settings → Environment Variables**, add the four variables above for Production only. To copy the token from `.env` without showing it:
+   ```powershell
+   (Select-String -Path .env -Pattern "^TURSO_AUTH_TOKEN='(.*)'$").Matches[0].Groups[1].Value | Set-Clipboard
+   ```
+   Clear the clipboard afterwards with `Set-Clipboard -Value ' '`.
+5. **Deployments → ⋯ → Redeploy**, since settings only reach new deployments.
+6. Check `/api/health`, add a run online and see it on the laptop, and the other way round.
+
+**Changing a setting:** edit it in Vercel's **Settings → Environment Variables**, then redeploy. For a new token, create it in Turso, update both Vercel and `.env`, then invalidate the old one in Turso.
+
 ## Troubleshooting
 
 - **"Run Tracker cannot start: port 3000 is already in use"**: another Run Tracker server is still running. Press **Ctrl+C** in its window (or close its `start.bat` window), then start it again. `start.bat` handles this for you: if Run Tracker is already running, it just opens the browser. If you still see this message from `start.bat`, a different program is using port 3000.
@@ -198,19 +253,20 @@ Invoke-RestMethod http://localhost:3000/api/summary
 - **"…still the placeholder from .env.example"**: you copied `.env.example` without changing the password. Redo setup step 4.
 - **Editing `.env` in Notepad doesn't seem to save**: use the PowerShell commands in step 4 instead.
 - **The page looks out of date after an update**: press **Ctrl+F5**.
+- **"TURSO_AUTH_TOKEN is missing, but TURSO_DATABASE_URL is set"** (or the other way round): set both Turso settings, or remove both to use `runs.db`.
+- **"TURSO_DATABASE_URL must start with libsql:// or https://"**: copy the URL from the Turso dashboard. For a file on this computer, use `DB_PATH` instead.
+- **Every API request gives "Something went wrong on the server" with Turso**: the URL or token is wrong, or the token was invalidated. The server window (or Vercel's **Logs**) shows the error.
+- **Online: `500 FUNCTION_INVOCATION_FAILED`**: a setting is missing in Vercel. Its **Logs** show "Run Tracker cannot start: …" with the name. Fix it and redeploy.
 
 ## Known limitations
 
-- **Runs locally only.** There's no hosting yet.
-  - GitHub Pages can't run it, because it needs a Node server.
-  - The server listens on all network interfaces, so other devices on the same Wi-Fi can open it on port 3000 and read the runs. Writes still need the password.
-- **Single password, no accounts.** There's one password for all writes.
-  - It travels over plain HTTP, which is fine on your own computer but not on a public network.
-  - There's no limit on wrong attempts.
-- **Uses your computer's clock and time zone** for "today", which decides this week, this month and the streak.
+- **Anyone can read the runs.** The website and its `GET` endpoints are public, so a portfolio page can read them. On the laptop, the server listens on all network interfaces, so other devices on the same Wi-Fi can open it on port 3000. Writes always need the password.
+- **Single password, no accounts.** There's one password for all writes, and no limit on wrong attempts, so the online password needs to be long. Online it travels over HTTPS; on the laptop over plain HTTP, which is fine on your own computer but not on a public network.
+- **"Today"** comes from the server: `APP_TIME_ZONE` online, your computer's clock on the laptop. It decides this week, this month, the streak and the date field.
   - A run dated in the future counts in all-time totals, but not in this week, this month or the chart until that date arrives.
-- **Desktop browser only.** There's no mobile layout.
-- **No undo for deletes.** Back up `runs.db` if your runs matter to you.
+- **Training plans** can only be generated on the laptop, and saved plans stay on the laptop.
+- **Made for a desktop browser.** It fits a phone screen and works there, but isn't designed for it.
+- **No undo for deletes.** Back up `runs.db` if you use it; with Turso, see its dashboard for backups.
 
 ## For testing
 
@@ -220,7 +276,11 @@ These environment variables let you run a test server without touching your real
 |---|---|---|
 | `PORT` | `3000` | Run a second server on another port |
 | `DB_PATH` | `runs.db` next to the code | Use a throwaway database |
-| `ENV_FILE` | `.env` next to the code | Use a test password file |
+| `ENV_FILE` | `.env` next to the code | Use a test settings file (password, and Turso settings for a test database) |
+| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | not set (uses `runs.db`) | Use a Turso database. Environment variables win over `.env` |
+| `WRITE_PASSWORD` | from `.env` | The password; an environment variable wins over `.env` (Vercel uses this) |
+| `APP_TIME_ZONE` | your computer's time zone | The time zone for "today", e.g. `America/Vancouver` |
+| `VERCEL` | not set | Set by Vercel. Set it to `1` to try the online behavior (no plan generation) on the laptop |
 | `NO_BROWSER` | not set | `start.bat` only: set to `1` to skip opening the browser |
 | `PLAN_TODAY` | your computer's date | Training plan: pretend today is another date (`YYYY-MM-DD`) |
 | `CLAUDE_BIN` | `claude` | Training plan: path to the `claude` command if it isn't on your PATH. A `.js` file is run with Node (for a fake `claude` in tests) |
@@ -239,8 +299,10 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | File | What's in it |
 |---|---|
 | `server.js` | Express app: routes, password check, error handling |
-| `config.js` | Reads `WRITE_PASSWORD` from `.env`; refuses to start if it's missing |
-| `db.js` | Opens SQLite, creates the `runs` table, and updates older databases |
+| `config.js` | Reads the settings from environment variables, then `.env`; refuses to start if the password is missing or the Turso settings are incomplete |
+| `store.js` | Every database query, as async functions: Turso when its settings are present, otherwise `runs.db` |
+| `schema.js` | The `runs` table, shared by `runs.db` and Turso |
+| `db.js` | Opens `runs.db` (SQLite), creates the `runs` table, and updates older databases |
 | `validate.js` | Checks run data and builds the 400 error messages |
 | `summary.js` | Totals, personal bests, streak and weekly numbers |
 | `plan-core.js` | Training plan logic shared by `plan.js` and the server: baseline, realism check, `claude -p` call, retry, save, log, latest plan |
@@ -249,5 +311,6 @@ When you're done, run `Remove-Item Env:PORT, Env:DB_PATH, Env:ENV_FILE` so later
 | `test-plan-validate.js` | Tests `plan-validate.js` with hand-made plans |
 | `public/` | The page: `index.html`, `style.css`, `app.js` (form, table, summary, SVG chart, password dialog, training plan) |
 | `start.bat` | Double-click launcher: checks setup, starts the server, opens the browser |
+| `vercel.json` | Vercel settings: run the function in Portland (`pdx1`) |
 | `CLAUDE.md` | Project spec |
 | `LOG.md` | Build log: what changed and why |
