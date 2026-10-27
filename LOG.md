@@ -758,3 +758,8 @@ All 9 planned steps were finished.
   - **Tested** on test databases, one server as on the laptop and one with `VERCEL=1`:
     - API: laptop Check says `can_generate: true` and Generate runs (fake model, 502 as before); with `VERCEL=1`, Check says `can_generate: false`, Generate gives 501 with the password and 401 without; adding runs and the latest plan work on both.
     - Headless Edge: laptop shows Generate for a realistic goal; `VERCEL=1` hides it and shows the note (also read out); for a goal that isn't realistic neither shows. No console errors. `test-plan-validate.js` passes.
+- **Hand test of change 5**, all passed:
+  - Laptop (Turso test database): Check 10K / 2027-02-23 / 4 → Realistic yes, Generate button, no note.
+  - `VERCEL=1`: the same Check → Realistic yes, no Generate button, the note "Generating a plan only works on the laptop version…". Marathon / 2026-12-01 → Realistic no, no button, no note. Adding a run with `test-only-pass` still works.
+  - `POST /api/plan/generate` with the right password while `VERCEL=1` → 501 with the "only works on the laptop version" message; no model call.
+  - Back to normal: `start.bat` says "(database: runs.db)" with my real data.
