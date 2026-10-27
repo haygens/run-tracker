@@ -745,3 +745,9 @@ All 9 planned steps were finished.
     - A wrong token: the API answers 500 "Something went wrong on the server", the page still loads, and the server keeps running.
     - Three Generate requests at once on Turso: one ran, two got 409.
     - The Turso token appears in none of the 21 test logs and outputs.
+- **Hand test of change 2**, all passed:
+  - `npm start`: "(database: runs.db)", my real data shows, add/edit/delete work with my normal password.
+  - `ENV_FILE=turso-test.env`: "(database: Turso)", the 8 test runs show; adding with `test-only-pass` works, editing works, summary and chart update.
+  - After restarting the server, my added run is still there, so it's stored in Turso, not on the laptop.
+  - `plan.js --dry-run` on Turso (10k, 2027-02-23, 3 per week): realistic, week 1 range 12.72–17.2 km (baseline about 14.96 km/week from the Turso test runs), 17 weeks; no model call.
+  - Back to normal: `start.bat` says "(database: runs.db)" with my real data.
