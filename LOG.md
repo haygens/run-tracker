@@ -724,3 +724,10 @@ All 9 planned steps were finished.
   - With `APP_TIME_ZONE=Pacific/Auckland` (test database): the date field showed tomorrow with Today pressed; Yesterday gave my laptop's today; "This week" ended on the same day; a date I picked stayed after adding a run; Edit → Cancel went back to the server's today.
   - Back to normal: `start.bat` shows my real data, and the date field is my laptop's today.
   - Next: step 2 (the database layer), once I've created the Turso test database.
+
+## 2026-10-27
+
+- **Turso test database and region** (CLAUDE.md).
+  - **Test database:** `run-tracker-test` in AWS us-west-2 (Oregon). Its settings (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `WRITE_PASSWORD='test-only-pass'`) are in `C:\Users\School\turso-test.env`, outside the project, so they can't be committed. Tests point at it with `ENV_FILE`.
+  - **Token incident:** my first token was accidentally shown in a screenshot, so I invalidated all tokens for this database and created a new one. The new token was never shown.
+  - **Region decision:** I'm on the west coast and the laptop will use Turso too, so the database is in Oregon instead of us-east-1. When deploying, the Vercel function goes to Portland (`pdx1`) to match (change 7: `"regions": ["pdx1"]` in `vercel.json`; Hobby allows one region).
