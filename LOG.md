@@ -719,3 +719,8 @@ All 9 planned steps were finished.
   - **Does it affect this app:** yes. `express.json()` runs with default options (compressed bodies allowed). The password check runs before it for writes, but `POST /api/plan/check` is public, and so is any POST outside `/api`, so anyone could reach it. On a public URL that's a one-request way to take the app down. I couldn't make the crash happen on the laptop (the server answered 500 and stayed up), but the vulnerable version was installed and reachable.
   - **Fix:** `npm audit fix`: `body-parser` 2.3.0 → 2.4.0, the patched version. A minor update within the range Express 5.3.0 already asks for (`^2.3.0`), so it isn't a breaking upgrade; Express and `package.json` are unchanged, only `package-lock.json`. The lockfile's root also now records `engines: 24.x` from change 6, which `npm install` hadn't written. `npm audit`: 0 vulnerabilities.
   - **Tested** on a temp database: the crafted requests leave the server running; adding a run works (also gzip-compressed); broken JSON still gets "Request body is not valid JSON" (400); an invalid run gets its list of errors (400); Check works; the page loads; `test-plan-validate.js` passes.
+- **Hand test of both fixes** on the laptop, all passed:
+  - `npm audit`: 0 vulnerabilities; `body-parser` is 2.4.0.
+  - With `APP_TIME_ZONE=Pacific/Auckland` (test database): the date field showed tomorrow with Today pressed; Yesterday gave my laptop's today; "This week" ended on the same day; a date I picked stayed after adding a run; Edit → Cancel went back to the server's today.
+  - Back to normal: `start.bat` shows my real data, and the date field is my laptop's today.
+  - Next: step 2 (the database layer), once I've created the Turso test database.
